@@ -43,8 +43,6 @@ function closeWithEscapeKey(): void {
     }
   });
 }
-
-// Attach event listeners (for this specific demo)
 function buttonListeners(): void {
   document.addEventListener('click', function (event: MouseEvent) {
     const target = event.target as HTMLElement;
@@ -58,6 +56,12 @@ function buttonListeners(): void {
         break;
       case 'closeBtn':
         postMessage({ type: UIActionTypes.CLOSE });
+        break;
+      case 'setPluginData':
+        postMessage({ type: UIActionTypes.SET_PLUGIN_DATA, payload: new Date().toString() });
+        break;
+      case 'getPluginData':
+        postMessage({ type: UIActionTypes.GET_PLUGIN_DATA, payload: new Date().toString() });
         break;
     }
   });

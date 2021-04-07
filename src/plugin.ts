@@ -1,4 +1,3 @@
-import { isRegExp } from 'node:util';
 import { UIActionTypes, UIAction, WorkerActionTypes, WorkerAction } from './types';
 
 // Sends a message to the plugin UI
@@ -33,6 +32,14 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
       break;
     case UIActionTypes.CREATE_RECTANGLE:
       createRectangle();
+      break;
+    case UIActionTypes.SET_PLUGIN_DATA:
+      figma
+        .getNodeById(figma.currentPage.selection[0].id)
+        ?.setPluginData('hi', new Date().toString());
+      break;
+    case UIActionTypes.GET_PLUGIN_DATA:
+      console.log(figma.getNodeById(figma.currentPage.selection[0].id)?.getPluginData('hi'));
       break;
   }
 };
