@@ -2,7 +2,8 @@ import { UIActionTypes, UIAction, WorkerActionTypes, WorkerAction } from './type
 
 import './ui.css';
 
-let global_lang = 'default';
+let globalLang = 0;
+let nowNodeLang = 0;
 let langList = [{ id: 0, name: 'default' }];
 
 // Sends a message to the plugin worker
@@ -25,7 +26,10 @@ function listenToPluginMessages(): void {
         break;
       case WorkerActionTypes.SELECTED_NODE:
         ChangeNodeId(payload.id);
-        if (payload.type === 'TEXT') ChangeNodeContents(payload.contents);
+        if (payload.type !== 'TEXT')
+          (<HTMLInputElement>document.getElementById('innertext')).value =
+            'Please select text node';
+        else ChangeNodeContents(payload);
         break;
       case WorkerActionTypes.ADD_LANG:
         AddLang(payload);
@@ -61,7 +65,7 @@ function buttonListeners(): void {
         postMessage({ type: UIActionTypes.NOTIFY, payload: 'Hello!' });
         break;
       case 'applyGlobalLangBtn':
-        postMessage({ type: UIActionTypes.APPLY_GLOBAL_LANG, payload: global_lang });
+        postMessage({ type: UIActionTypes.APPLY_GLOBAL_LANG, payload: globalLang });
         break;
       case 'addLangBtn':
         postMessage({ type: UIActionTypes.ADD_LANG });
@@ -85,12 +89,21 @@ function buttonListeners(): void {
         postMessage({ type: UIActionTypes.GET_PLUGIN_DATA, payload: new Date().toString() });
         break;
     }
+    if (target.className === 'previewLangBtn') {
+      let langId = globalLang;
+      for (let i = 0; i < target.parentElement!.children.length; i++)
+        if (target.parentElement!.children[i] === target) langId = langList[i].id;
+      SetPreviewLangBtn(langId);
+      postMessage({ type: UIActionTypes.SET_NODE_NOW_LANG, payload: langId });
+    }
   });
 }
 
 function init(payload: any) {
   const globalSelect = document.getElementById('globalSelect') as HTMLSelectElement;
-  langList = JSON.parse(payload.langList);
+  langList = payload.langList;
+  globalLang = payload.globalLang;
+  console.log(payload);
   for (let i = 0; i < langList.length; i++) {
     const newOption = document.createElement('option');
     newOption.innerText = langList[i].name;
@@ -98,6 +111,9 @@ function init(payload: any) {
     const newTab = document.createElement('div');
     newTab.className = 'previewLangBtn';
     newTab.innerText = newOption.innerText;
+    if (langList[i].id === globalLang) {
+      newTab.style.background = 'var(--color-border)';
+    }
     document.getElementById('previewTab')!.appendChild(newTab);
   }
 }
@@ -180,14 +196,31 @@ function ChangeNodeId(id: string) {
   if (selectedNodeId) selectedNodeId.value = id;
 }
 
-function ChangeNodeContents(contents: any) {
-  (<HTMLInputElement>document.getElementById('innertext')).value = contents.characters;
+function ChangeNodeContents(payload: any) {
+  console.log(payload);
+  nowNodeLang = payload.contents.nowNodeLang;
+  SetPreviewLangBtn(nowNodeLang);
+  (<HTMLInputElement>document.getElementById('innertext')).value = payload.contents.characters;
+  postMessage({
+    type: UIActionTypes.CHANGE_NODE_CONTENTS,
+    payload: { id: payload.id, lang: nowNodeLang },
+  });
+}
+
+function SetPreviewLangBtn(id: number) {
+  const previewLangBtns = document.querySelectorAll('.previewLangBtn');
+  console.log(id);
+  for (let i = 0; i < previewLangBtns.length; i++) {
+    if (langList[i].id === id) {
+      (<HTMLDivElement>previewLangBtns[i]).style.background = 'var(--color-border)';
+    } else (<HTMLDivElement>previewLangBtns[i]).style.background = 'none';
+  }
 }
 
 function main() {
   postMessage({ type: UIActionTypes.INIT });
   document.getElementById('globalSelect')?.addEventListener('change', (e: any) => {
-    global_lang = e?.target?.value || null;
+    globalLang = e?.target?.value || null;
     postMessage({ type: UIActionTypes.SET_GLOBAL_LANG, payload: e?.target?.value || null });
   });
 }
