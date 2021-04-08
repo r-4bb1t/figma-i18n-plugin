@@ -1,24 +1,26 @@
 <body>
   <main class="container">
     <h1>Figma i18n Plugin</h1>
+    <h2>Global Language</h2>
     <div class="flexRow">
-      <h2>Global Language</h2>
-      <select class="globalSelect">
-        <option>ko</option>
-        <option>en</option>
-        <option>jp</option>
-      </select>
-      <div class="plusBtn">+</div>
+      <select id="globalSelect"></select>
+      <button class="btn" id="applyGlobalLangBtn">Apply all</button>
+      <button class="squareBtn btn" id="addLangBtn">+</button>
+      <button class="squareBtn btn" id="deleteLangBtn">-</button>
+      <button class="squareBtn btn" id="editLangBtn">🖍</button>
+      <div id="editLangDiv" class="flexRow">
+        <input type="text" id="editLangInput" />
+        <button class="squareBtn btn" id="editDoneLangBtn">✔</button>
+      </div>
     </div>
     <div class="flexRow">
       <h2>Selected Node ID</h2>
       <input type="text" id="selectedNodeID" disabled readonly />
     </div>
     <div class="line"></div>
-    <h2>Characters</h2>
-    <textarea disabled readonly id="innertext">ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ</textarea>
-    <button id="setPluginData">SET</button>
-    <button id="getPluginData">GET</button>
+    <h2>Characters Preview</h2>
+    <div class="flexRow" id="previewTab"></div>
+    <textarea disabled readonly id="innertext">Please select text node</textarea>
     <div class="line"></div>
     <p>
       Made by <a href="https://github.com/r-4bb1t" target="_blank">@r4bb1t</a><br />Boilerplate by

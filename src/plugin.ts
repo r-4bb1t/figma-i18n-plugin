@@ -24,14 +24,29 @@ function createRectangle(): void {
 // Listen to messages received from the plugin UI (src/ui/ui.ts)
 figma.ui.onmessage = function ({ type, payload }: UIAction): void {
   switch (type) {
+    case UIActionTypes.INIT:
+      let data = {};
+      if (!figma.currentPage.getPluginData('langList'))
+        figma.currentPage.setPluginData('langList', `[{ "id": 0, "name": "default" }]`);
+      data = { ...data, langList: figma.currentPage.getPluginData('langList') };
+      postMessage({ type: WorkerActionTypes.INIT, payload: data });
+      break;
     case UIActionTypes.CLOSE:
       figma.closePlugin();
       break;
     case UIActionTypes.NOTIFY:
       payload && figma.notify(payload);
       break;
-    case UIActionTypes.CREATE_RECTANGLE:
-      createRectangle();
+    case UIActionTypes.APPLY_GLOBAL_LANG:
+      break;
+    case UIActionTypes.ADD_LANG:
+      AddLang();
+      break;
+    case UIActionTypes.EDIT_LANG:
+      EditLang(payload);
+      break;
+    case UIActionTypes.DELETE_LANG:
+      DeleteLang(payload);
       break;
     case UIActionTypes.SET_PLUGIN_DATA:
       figma
@@ -47,7 +62,7 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
 // Show the plugin interface (https://www.figma.com/plugin-docs/creating-ui/)
 // Remove this in case your plugin doesn't need a UI, make network requests, use browser APIs, etc.
 // If you need to make network requests you need an invisible UI (https://www.figma.com/plugin-docs/making-network-requests/)
-figma.showUI(__html__, { width: 400, height: 600 });
+figma.showUI(__html__, { width: 500, height: 600 });
 
 figma.on('selectionchange', async () => {
   const id = figma.currentPage.selection[0].id;
@@ -59,3 +74,28 @@ figma.on('selectionchange', async () => {
     payload: { id: id, type: node?.type || null, contents: contents },
   });
 });
+
+function AddLang() {
+  const id = parseInt(figma.currentPage.getPluginData('lang-id-index')) + 1 || 1;
+  figma.currentPage.setPluginData('lang-id-index', id.toString());
+  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+  langList.push({ id: id, name: `lang(${id})` });
+  figma.currentPage.setPluginData('langList', JSON.stringify(langList));
+  postMessage({ type: WorkerActionTypes.ADD_LANG, payload: id });
+}
+
+function EditLang(payload: any) {
+  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+  const newLangList = langList.map((item: any) => {
+    if (item.id === payload.id) return { id: item.id, name: payload.name };
+    return item;
+  });
+  console.log(newLangList);
+  figma.currentPage.setPluginData('langList', JSON.stringify(newLangList));
+}
+
+function DeleteLang(id: number) {
+  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+  const newLangList = langList.filter((item: any) => item.id !== id);
+  figma.currentPage.setPluginData('langList', JSON.stringify(newLangList));
+}
