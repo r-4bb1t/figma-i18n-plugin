@@ -264,9 +264,7 @@ function SetNodeNowLang(payload: any) {
 
 function exportFile() {
   const textNodeList = JSON.parse(figma.currentPage.getPluginData('textNodeList'));
-  const globalLang = figma.currentPage.getPluginData('globalLang');
   const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
-  const rangeFontNames = [] as FontName[];
   const exportMap = {
     languages: langList,
     i18n: textNodeList.reduce((prevObject: Object, textNodeId: string) => {
@@ -279,11 +277,7 @@ function exportFile() {
     }, {})
   }
   console.log("exportAll", exportMap);
-  const blob = new Blob([JSON.stringify(exportMap)], {type: 'application/json'});
-  const anchor = document.createElement('a');
-  anchor.setAttribute('href', window.URL.createObjectURL(blob));
-  anchor.setAttribute('download', "i18n.json");
-  anchor.click();
+  postMessage({ type: WorkerActionTypes.EXPORT, payload: JSON.stringify(exportMap) });
 }
 
 // Show the plugin interface (https://www.figma.com/plugin-docs/creating-ui/)

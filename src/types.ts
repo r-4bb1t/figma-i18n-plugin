@@ -22,11 +22,13 @@ export interface UIAction {
   payload?: any;
 }
 
+
 export enum WorkerActionTypes {
   INIT = 'INIT',
   CREATE_RECTANGLE_NOTIFY = 'CREATE_RECTANGLE_NOTIFY',
   SELECTED_NODE = 'SELECTED_NODE',
   ADD_LANG = 'ADD_LANG',
+  EXPORT = "EXPORT"
 }
 
 export interface WorkerAction {

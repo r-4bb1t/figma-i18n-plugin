@@ -34,6 +34,13 @@ function listenToPluginMessages(): void {
       case WorkerActionTypes.ADD_LANG:
         AddLang(payload);
         break;
+      case WorkerActionTypes.EXPORT:
+        const blob = new Blob([payload], {type: 'application/json'});
+        const anchor = document.createElement('a');
+        anchor.setAttribute('href', window.URL.createObjectURL(blob));
+        anchor.setAttribute('download', "i18n.json");
+        anchor.click();      
+        break;
     }
   };
 }
