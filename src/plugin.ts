@@ -267,14 +267,17 @@ function exportFile() {
   const globalLang = figma.currentPage.getPluginData('globalLang');
   const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
   const rangeFontNames = [] as FontName[];
-  const exportMap = textNodeList.reduce((prevObject: Object, textNodeId: string) => {
-    const node = <TextNode>figma.getNodeById(textNodeId);
-    const {nodeContents} = JSON.parse(node.getPluginData('nodeInfo'));
-    return {
-      ...prevObject,
-      [textNodeId]: nodeContents
-    }
-  }, {});
+  const exportMap = {
+    languages: langList,
+    i18n: textNodeList.reduce((prevObject: Object, textNodeId: string) => {
+      const node = <TextNode>figma.getNodeById(textNodeId);
+      const {nodeContents} = JSON.parse(node.getPluginData('nodeInfo'));
+      return {
+        ...prevObject,
+        [textNodeId]: nodeContents
+      }
+    }, {})
+  }
   console.log("exportAll", exportMap);
   const blob = new Blob([JSON.stringify(exportMap)], {type: 'application/json'});
   const anchor = document.createElement('a');
