@@ -56,8 +56,11 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
     case UIActionTypes.GET_PLUGIN_DATA:
       console.log(figma.getNodeById(figma.currentPage.selection[0].id)?.getPluginData('hi'));
       break;
-    case UIActionTypes.IMPORT_CSV:
+    case UIActionTypes.IMPORT:
       console.log("IMPORT CSV", payload);
+      break;
+    case UIActionTypes.EXPORT:
+      exportFile();
       break;
   }
 };
@@ -257,6 +260,27 @@ function SetNodeNowLang(payload: any) {
     type: WorkerActionTypes.SELECTED_NODE,
     payload: { id: node.id, type: node.type || null, contents: contents },
   });
+}
+
+function exportFile() {
+  const textNodeList = JSON.parse(figma.currentPage.getPluginData('textNodeList'));
+  const globalLang = figma.currentPage.getPluginData('globalLang');
+  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+  const rangeFontNames = [] as FontName[];
+  const exportMap = textNodeList.reduce((prevObject: Object, textNodeId: string) => {
+    const node = <TextNode>figma.getNodeById(textNodeId);
+    const {nodeContents} = JSON.parse(node.getPluginData('nodeInfo'));
+    return {
+      ...prevObject,
+      [textNodeId]: nodeContents
+    }
+  }, {});
+  console.log("exportAll", exportMap);
+  const blob = new Blob([JSON.stringify(exportMap)], {type: 'application/json'});
+  const anchor = document.createElement('a');
+  anchor.setAttribute('href', window.URL.createObjectURL(blob));
+  anchor.setAttribute('download', "i18n.json");
+  anchor.click();
 }
 
 // Show the plugin interface (https://www.figma.com/plugin-docs/creating-ui/)

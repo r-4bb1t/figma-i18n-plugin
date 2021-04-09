@@ -58,13 +58,17 @@ function closeWithEscapeKey(): void {
 }
 
 function buttonListeners(): void {
-  document.getElementById("import")?.addEventListener("change", async (event)=> {
-    console.log(event);
-    const files: FileList = event.currentTarget as any;
-    if (!files || !files.length) return;
-    const file = files[0];
-    const text = await file.text();
-    postMessage({ type: UIActionTypes.IMPORT_CSV, payload: text});
+  console.log("BIND BUTTON LISTENER");
+  document.addEventListener('change', async event => {
+    const target = event.target as HTMLElement;
+    if (target.id === "import") {
+      console.log("import button pressed")
+      const files = (<HTMLInputElement>event.target)?.files;
+      if (!files || !files.length) return;
+      const file = files[0];
+      const text = await file.text();
+      postMessage({ type: UIActionTypes.IMPORT, payload: text});
+    }
   }, false);
   document.addEventListener('click', function (event: MouseEvent) {
     const target = event.target as HTMLElement;
@@ -99,6 +103,8 @@ function buttonListeners(): void {
       case 'getPluginData':
         postMessage({ type: UIActionTypes.GET_PLUGIN_DATA, payload: new Date().toString() });
         break;
+      case 'export':
+        postMessage({ type: UIActionTypes.EXPORT })
     }
     if (target.className === 'previewLangBtn') {
       let langId = globalLang;
