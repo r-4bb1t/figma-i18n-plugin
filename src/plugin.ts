@@ -34,6 +34,7 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
       payload && figma.notify(payload);
       break;
     case UIActionTypes.APPLY_GLOBAL_LANG:
+      ApplyGlobalLang(payload);
       break;
     case UIActionTypes.ADD_LANG:
       AddLang();
@@ -128,12 +129,27 @@ figma.on('selectionchange', async () => {
 
 figma.on('currentpagechange', () => Init());
 
+function getTextNode(root: BaseNode) {
+  if (
+    root.type === 'RECTANGLE' ||
+    root.type === 'SLICE' ||
+    root.type === 'VECTOR' ||
+    root.type === 'STAR' ||
+    root.type === 'LINE' ||
+    root.type === 'ELLIPSE' ||
+    root.type === 'POLYGON'
+  )
+    return [];
+  if (root.type === 'TEXT') return [root.id];
+  let textChild = [] as string[];
+  for (let child of root.children) textChild = textChild.concat(getTextNode(child));
+  return textChild;
+}
+
 async function Init() {
   if (!figma.currentPage.getPluginData('langList'))
     figma.currentPage.setPluginData('langList', `[{ "id": 0, "name": "default" }]`);
-  const textNodeList = figma.currentPage.children
-    .filter((node) => node.type === 'TEXT')
-    .map((textNode) => textNode.id);
+  const textNodeList = getTextNode(figma.currentPage);
   figma.currentPage.setPluginData('textNodeList', JSON.stringify(textNodeList));
   if (!figma.currentPage.getPluginData('globalLang'))
     figma.currentPage.setPluginData(
@@ -162,7 +178,6 @@ function EditLang(payload: any) {
     if (item.id === payload.id) return { id: item.id, name: payload.name };
     return item;
   });
-  console.log(newLangList);
   figma.currentPage.setPluginData('langList', JSON.stringify(newLangList));
 }
 
@@ -172,10 +187,44 @@ function DeleteLang(id: number) {
   figma.currentPage.setPluginData('langList', JSON.stringify(newLangList));
 }
 
+function ApplyGlobalLang(globalLang: number) {
+  console.log(globalLang);
+  const textNodeList = JSON.parse(figma.currentPage.getPluginData('textNodeList'));
+  figma.currentPage.setPluginData('globalLang', globalLang.toString());
+  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+
+  textNodeList.map(async (textNodeId: string) => {
+    const node = <TextNode>figma.getNodeById(textNodeId);
+    for (let i = 0; i < node.characters.length; i++) {
+      await figma.loadFontAsync(node.getRangeFontName(i, i + 1) as FontName);
+    }
+    if (!node.getPluginData('nodeInfo')) {
+      const defaultContents = langList.reduce((acc: any, lang: LangType) => {
+        acc[lang.id.toString()] = {
+          characters: node.characters,
+          style: {},
+          characterStyleOverrides: {},
+        };
+        return acc;
+      }, {});
+      node.setPluginData(
+        'nodeInfo',
+        JSON.stringify({
+          nowLangId: figma.currentPage.getPluginData('globalLang'),
+          nodeContents: defaultContents,
+        }),
+      );
+    }
+    const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
+    nodeInfo.nowLangId = globalLang;
+    node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
+    node.characters = nodeInfo.nodeContents[globalLang].characters;
+  });
+}
+
 function SetNodeNowLang(payload: any) {
   const newNodeInfo = JSON.parse(figma.currentPage.selection[0]!.getPluginData('nodeInfo'));
   const node = <TextNode>figma.currentPage.selection[0];
-  console.log('newNodeInfo', newNodeInfo);
   newNodeInfo.nowLangId = payload;
   node.characters = newNodeInfo.nodeContents[`${payload}`].characters;
   figma.currentPage.selection[0]!.setPluginData('nodeInfo', JSON.stringify(newNodeInfo));

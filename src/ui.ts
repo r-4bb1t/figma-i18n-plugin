@@ -65,6 +65,9 @@ function buttonListeners(): void {
         postMessage({ type: UIActionTypes.NOTIFY, payload: 'Hello!' });
         break;
       case 'applyGlobalLangBtn':
+        globalLang =
+          langList[(<HTMLSelectElement>document.getElementById('globalSelect')).selectedIndex].id;
+        SetPreviewLangBtn(globalLang);
         postMessage({ type: UIActionTypes.APPLY_GLOBAL_LANG, payload: globalLang });
         break;
       case 'addLangBtn':
@@ -103,7 +106,6 @@ function init(payload: any) {
   const globalSelect = document.getElementById('globalSelect') as HTMLSelectElement;
   langList = payload.langList;
   globalLang = payload.globalLang;
-  console.log(payload);
   for (let i = 0; i < langList.length; i++) {
     const newOption = document.createElement('option');
     newOption.innerText = langList[i].name;
@@ -197,7 +199,6 @@ function ChangeNodeId(id: string) {
 }
 
 function ChangeNodeContents(payload: any) {
-  console.log(payload);
   nowNodeLang = payload.contents.nowNodeLang;
   SetPreviewLangBtn(nowNodeLang);
   (<HTMLInputElement>document.getElementById('innertext')).value = payload.contents.characters;
@@ -209,7 +210,6 @@ function ChangeNodeContents(payload: any) {
 
 function SetPreviewLangBtn(id: number) {
   const previewLangBtns = document.querySelectorAll('.previewLangBtn');
-  console.log(id);
   for (let i = 0; i < previewLangBtns.length; i++) {
     if (langList[i].id === id) {
       (<HTMLDivElement>previewLangBtns[i]).style.background = 'var(--color-border)';
