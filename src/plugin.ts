@@ -57,7 +57,7 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
       console.log(figma.getNodeById(figma.currentPage.selection[0].id)?.getPluginData('hi'));
       break;
     case UIActionTypes.IMPORT:
-      console.log("IMPORT CSV", payload);
+      importFile(payload);
       break;
     case UIActionTypes.EXPORT:
       exportFile();
@@ -267,6 +267,7 @@ function exportFile() {
   const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
   const exportMap = {
     languages: langList,
+    textNodeList,
     i18n: textNodeList.reduce((prevObject: Object, textNodeId: string) => {
       const node = <TextNode>figma.getNodeById(textNodeId);
       const {nodeContents} = JSON.parse(node.getPluginData('nodeInfo'));
@@ -280,6 +281,32 @@ function exportFile() {
   postMessage({ type: WorkerActionTypes.EXPORT, payload: JSON.stringify(exportMap) });
 }
 
+function importFile(payload: string) {
+  const {content, currentLang} = JSON.parse(payload);
+  const {textNodeList, i18n, languages, globalLang} = JSON.parse(content);
+  figma.currentPage.setPluginData('textNodeList', JSON.stringify(textNodeList));
+  figma.currentPage.setPluginData('globalLang', `${languages[0].id}`);
+  figma.currentPage.setPluginData('langList', JSON.stringify(languages));
+  figma.currentPage.setPluginData('lang-id-index', `${languages.length}`);
+  const rangeFontNames = [] as FontName[];
+
+  languages.map(async ({id}: any)=>
+    textNodeList.map(async (textNodeId: string) => {
+      const node = <TextNode>figma.getNodeById(textNodeId);
+      let flag = false;
+      for (let i = 0; i < node.characters.length; i++) {
+        const fontName = node.getRangeFontName(i, i + 1) as FontName;
+        if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
+        rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
+        flag = true;
+      }
+      if (flag) await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
+      const nodeInfo = {nodeContents: i18n[textNodeId], nowLangId: id};
+      node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
+    })
+  );
+  ApplyGlobalLang(currentLang);
+}
 // Show the plugin interface (https://www.figma.com/plugin-docs/creating-ui/)
 // Remove this in case your plugin doesn't need a UI, make network requests, use browser APIs, etc.
 // If you need to make network requests you need an invisible UI (https://www.figma.com/plugin-docs/making-network-requests/)

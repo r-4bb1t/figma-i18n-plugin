@@ -67,14 +67,16 @@ function closeWithEscapeKey(): void {
 function buttonListeners(): void {
   console.log("BIND BUTTON LISTENER");
   document.addEventListener('change', async event => {
-    const target = event.target as HTMLElement;
+    const target = event.target as HTMLInputElement;
     if (target.id === "import") {
       console.log("import button pressed")
-      const files = (<HTMLInputElement>event.target)?.files;
+      const files = target?.files;
       if (!files || !files.length) return;
       const file = files[0];
-      const text = await file.text();
-      postMessage({ type: UIActionTypes.IMPORT, payload: text});
+      const content = await file.text();
+      const currentLang = langList[(<HTMLSelectElement>document.getElementById('globalSelect')).selectedIndex]?.id;
+      postMessage({ type: UIActionTypes.IMPORT, payload: JSON.stringify({content, currentLang}) });
+      target.value = "";
     }
   }, false);
   document.addEventListener('click', function (event: MouseEvent) {
