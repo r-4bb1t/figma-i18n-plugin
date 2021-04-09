@@ -58,6 +58,8 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
   }
 };
 
+let thisNode = (null as unknown) as string;
+
 figma.on('selectionchange', async () => {
   const id = figma.currentPage.selection[0].id;
   const node = figma.getNodeById(id);
@@ -68,32 +70,56 @@ figma.on('selectionchange', async () => {
     });
     return;
   }
+  for (let i = 0; i < node.characters.length; i++) {
+    await figma.loadFontAsync(node.getRangeFontName(i, i + 1) as FontName);
+  }
   const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
-  if (!node.getPluginData('nodeInfo'))
+  const defaultContents = langList.reduce((acc: any, lang: LangType) => {
+    acc[lang.id.toString()] = {
+      characters: node.characters,
+      style: {},
+      characterStyleOverrides: {},
+    };
+    return acc;
+  }, {});
+  if (!node.getPluginData('nodeInfo')) {
     node.setPluginData(
       'nodeInfo',
       JSON.stringify({
         nowLangId: figma.currentPage.getPluginData('globalLang'),
-        nodeContents: langList.map((lang: LangType) => {
-          return {
-            [lang.id.toString()]: {
-              characters: node.characters,
-              style: {},
-              characterStyleOverrides: {},
-            },
-          };
-        }),
+        nodeContents: defaultContents,
       }),
     );
+    const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
+    const nowNodeLang = parseInt(nodeInfo.nowLangId);
+    const nodeContents = nodeInfo.nodeContents;
+    let contents = {
+      characters: node.characters || null,
+      nowNodeLang: nowNodeLang,
+      nodeContents: nodeContents,
+    };
+    postMessage({
+      type: WorkerActionTypes.SELECTED_NODE,
+      payload: { id: id, type: node?.type || null, contents: contents },
+    });
+  }
+
   const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
   const nowNodeLang = parseInt(nodeInfo.nowLangId);
   const nodeContents = nodeInfo.nodeContents;
-  /**/
   let contents = {
     characters: node.characters || null,
     nowNodeLang: nowNodeLang,
     nodeContents: nodeContents,
   };
+
+  if (thisNode !== id) {
+    node.characters = nodeInfo.nodeContents[nowNodeLang].characters;
+    thisNode = id;
+  }
+  nodeInfo.nodeContents[nowNodeLang].characters = node.characters;
+  figma.currentPage.selection[0]!.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
+
   postMessage({
     type: WorkerActionTypes.SELECTED_NODE,
     payload: { id: id, type: node?.type || null, contents: contents },
@@ -102,7 +128,7 @@ figma.on('selectionchange', async () => {
 
 figma.on('currentpagechange', () => Init());
 
-function Init() {
+async function Init() {
   if (!figma.currentPage.getPluginData('langList'))
     figma.currentPage.setPluginData('langList', `[{ "id": 0, "name": "default" }]`);
   const textNodeList = figma.currentPage.children
@@ -148,8 +174,23 @@ function DeleteLang(id: number) {
 
 function SetNodeNowLang(payload: any) {
   const newNodeInfo = JSON.parse(figma.currentPage.selection[0]!.getPluginData('nodeInfo'));
+  const node = <TextNode>figma.currentPage.selection[0];
+  console.log('newNodeInfo', newNodeInfo);
   newNodeInfo.nowLangId = payload;
+  node.characters = newNodeInfo.nodeContents[`${payload}`].characters;
   figma.currentPage.selection[0]!.setPluginData('nodeInfo', JSON.stringify(newNodeInfo));
+
+  const nodeContents = newNodeInfo.nodeContents;
+  let contents = {
+    characters: node.characters || null,
+    nowNodeLang: payload,
+    nodeContents: nodeContents,
+  };
+
+  postMessage({
+    type: WorkerActionTypes.SELECTED_NODE,
+    payload: { id: node.id, type: node.type || null, contents: contents },
+  });
 }
 
 // Show the plugin interface (https://www.figma.com/plugin-docs/creating-ui/)
