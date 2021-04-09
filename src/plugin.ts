@@ -56,13 +56,17 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
     case UIActionTypes.GET_PLUGIN_DATA:
       console.log(figma.getNodeById(figma.currentPage.selection[0].id)?.getPluginData('hi'));
       break;
+    case UIActionTypes.IMPORT_CSV:
+      console.log("IMPORT CSV", payload);
+      break;
   }
 };
 
 let thisNode = (null as unknown) as string;
 
 figma.on('selectionchange', async () => {
-  const id = figma.currentPage.selection[0].id;
+  const id = figma.currentPage.selection[0]?.id;
+  if (!id) return;
   const node = figma.getNodeById(id);
   if (!node || node.type !== 'TEXT') {
     postMessage({

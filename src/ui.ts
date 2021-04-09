@@ -58,6 +58,14 @@ function closeWithEscapeKey(): void {
 }
 
 function buttonListeners(): void {
+  document.getElementById("import")?.addEventListener("change", async (event)=> {
+    console.log(event);
+    const files: FileList = event.currentTarget as any;
+    if (!files || !files.length) return;
+    const file = files[0];
+    const text = await file.text();
+    postMessage({ type: UIActionTypes.IMPORT_CSV, payload: text});
+  }, false);
   document.addEventListener('click', function (event: MouseEvent) {
     const target = event.target as HTMLElement;
     switch (target.id) {
