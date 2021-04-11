@@ -12,6 +12,8 @@ export enum UIActionTypes {
   GET_PLUGIN_DATA = 'GET_PLUGIN_DATA',
   CHANGE_NODE_CONTENTS = 'CHANGE_NODE_CONTENTS',
   ADD_SELECTED_NODE_DETECTOR = 'ADD_SELECTED_NODE_DETECTOR',
+  IMPORT = 'IMPORT',
+  EXPORT = 'EXPORT',
 }
 
 export interface UIAction {
@@ -26,6 +28,7 @@ export enum WorkerActionTypes {
   SELECTED_NODE = 'SELECTED_NODE',
   ADD_LANG = 'ADD_LANG',
   SET_FONT_LOAD_STATUS = 'SET_FONT_LOAD_STATUS',
+  EXPORT = 'EXPORT',
 }
 
 export interface WorkerAction {

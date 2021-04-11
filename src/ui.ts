@@ -44,6 +44,13 @@ function listenToPluginMessages(): void {
         }
         console.log(payload);
         break;
+      case WorkerActionTypes.EXPORT:
+        const blob = new Blob([payload], { type: 'application/json' });
+        const anchor = document.createElement('a');
+        anchor.setAttribute('href', window.URL.createObjectURL(blob));
+        anchor.setAttribute('download', 'i18n.json');
+        anchor.click();
+        break;
     }
   };
 }
@@ -68,6 +75,28 @@ function closeWithEscapeKey(): void {
 }
 
 function buttonListeners(): void {
+  console.log('BIND BUTTON LISTENER');
+  document.addEventListener(
+    'change',
+    async (event) => {
+      const target = event.target as HTMLInputElement;
+      if (target.id === 'import') {
+        console.log('import button pressed');
+        const files = target?.files;
+        if (!files || !files.length) return;
+        const file = files[0];
+        const content = await file.text();
+        const currentLang =
+          langList[(<HTMLSelectElement>document.getElementById('globalSelect')).selectedIndex]?.id;
+        postMessage({
+          type: UIActionTypes.IMPORT,
+          payload: JSON.stringify({ content, currentLang }),
+        });
+        target.value = '';
+      }
+    },
+    false,
+  );
   document.addEventListener('click', function (event: MouseEvent) {
     const target = event.target as HTMLElement;
     switch (target.id) {
@@ -101,6 +130,8 @@ function buttonListeners(): void {
       case 'getPluginData':
         postMessage({ type: UIActionTypes.GET_PLUGIN_DATA, payload: new Date().toString() });
         break;
+      case 'export':
+        postMessage({ type: UIActionTypes.EXPORT });
     }
     if (target.className === 'previewLangBtn') {
       let langId = globalLang;
