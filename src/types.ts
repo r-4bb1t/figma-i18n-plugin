@@ -25,6 +25,7 @@ export enum WorkerActionTypes {
   CREATE_RECTANGLE_NOTIFY = 'CREATE_RECTANGLE_NOTIFY',
   SELECTED_NODE = 'SELECTED_NODE',
   ADD_LANG = 'ADD_LANG',
+  SET_FONT_LOAD_STATUS = 'SET_FONT_LOAD_STATUS',
 }
 
 export interface WorkerAction {

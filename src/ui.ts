@@ -34,6 +34,16 @@ function listenToPluginMessages(): void {
       case WorkerActionTypes.ADD_LANG:
         AddLang(payload);
         break;
+      case WorkerActionTypes.SET_FONT_LOAD_STATUS:
+        if (payload) {
+          document.getElementById('loadedFonts')!.style.display = 'block';
+          document.getElementById('loadingFonts')!.style.display = 'none';
+        } else {
+          document.getElementById('loadedFonts')!.style.display = 'none';
+          document.getElementById('loadingFonts')!.style.display = 'block';
+        }
+        console.log(payload);
+        break;
     }
   };
 }

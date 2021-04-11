@@ -44,7 +44,6 @@ body {
 
 h1 {
   font-size: 16px;
-  margin-bottom: 10px;
 }
 
 h2 {
@@ -141,6 +140,13 @@ option {
   align-items: center;
 }
 
+.flexRowBetween {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .btn {
   padding: 5px 10px;
   border-radius: 3px;
@@ -196,4 +202,29 @@ textarea {
 
 #editLangInput {
   width: 150px;
+}
+
+#loadingFonts {
+  color: var(--color-dark);
+}
+
+@keyframes loadingDots {
+  0% {
+    content: '.';
+  }
+  33% {
+    content: '..';
+  }
+  66% {
+    content: '...';
+  }
+}
+
+#loadingFonts::after {
+  content: '.';
+  animation: loadingDots 1s linear infinite;
+}
+
+#loadedFonts {
+  display: none;
 }
