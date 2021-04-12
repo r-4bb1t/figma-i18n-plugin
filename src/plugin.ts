@@ -374,7 +374,7 @@ function importFile(payload: string) {
   figma.currentPage.setPluginData('lang-id-index', `${languages.length}`);
   const rangeFontNames = [] as FontName[];
 
-  languages.map(async ({ id }: any) =>{
+  languages.map(async ({ id }: any) =>
     textNodeList.map(async (textNodeId: string) => {
       const node = <TextNode>figma.getNodeById(textNodeId);
       if (node?.characters) {
@@ -392,7 +392,7 @@ function importFile(payload: string) {
 
       /* 여기서 뭔가 스타일 적용 같은 게 되야할 것 같은 느낌은 TODO? */    
     }),
-  });
+  );
   ApplyGlobalLang(currentLang);
 }
 // Show the plugin interface (https://www.figma.com/plugin-docs/creating-ui/)
