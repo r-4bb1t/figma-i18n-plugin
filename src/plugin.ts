@@ -227,27 +227,29 @@ async function ApplyGlobalLang(globalLang: number) {
   postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
   textNodeList.map(async (textNodeId: string) => {
     const node = <TextNode>figma.getNodeById(textNodeId);
-    if (!node.getPluginData('nodeInfo')) {
-      const defaultContents = langList.reduce((acc: any, lang: LangType) => {
-        acc[lang.id.toString()] = {
-          characters: node.characters,
-          style: {},
-          characterStyleOverrides: {},
-        };
-        return acc;
-      }, {});
-      node.setPluginData(
-        'nodeInfo',
-        JSON.stringify({
-          nowLangId: figma.currentPage.getPluginData('globalLang'),
-          nodeContents: defaultContents,
-        }),
-      );
+    if (node?.characters) {
+      if (!node.getPluginData('nodeInfo')) {
+        const defaultContents = langList.reduce((acc: any, lang: LangType) => {
+          acc[lang.id.toString()] = {
+            characters: node.characters,
+            style: {},
+            characterStyleOverrides: {},
+          };
+          return acc;
+        }, {});
+        node.setPluginData(
+          'nodeInfo',
+          JSON.stringify({
+            nowLangId: figma.currentPage.getPluginData('globalLang'),
+            nodeContents: defaultContents,
+          }),
+        );
+      }
+      const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
+      nodeInfo.nowLangId = globalLang;
+      node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
+      node.characters = nodeInfo.nodeContents[globalLang].characters;
     }
-    const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
-    nodeInfo.nowLangId = globalLang;
-    node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
-    node.characters = nodeInfo.nodeContents[globalLang].characters;
   });
 }
 
