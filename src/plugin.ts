@@ -95,10 +95,12 @@ figma.on('selectionchange', async () => {
     acc[lang.id.toString()] = {
       characters: node.characters,
       style: {},
-      characterStyleOverrides: {},
+      characterStyleOverrides: [],
+      styleOverrideTable: {},
     };
     return acc;
   }, {});
+
   if (!node.getPluginData('nodeInfo')) {
     node.setPluginData(
       'nodeInfo',
@@ -131,9 +133,11 @@ figma.on('selectionchange', async () => {
   };
 
   if (thisNode !== id) {
-    node.characters = nodeInfo.nodeContents[nowNodeLang].characters;
+    if (nowNodeLang !== parseInt(figma.currentPage.getPluginData('globalLang')))
+      node.characters = nodeInfo.nodeContents[nowNodeLang].characters;
     thisNode = id;
   }
+
   nodeInfo.nodeContents[nowNodeLang].characters = node.characters;
   node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
 

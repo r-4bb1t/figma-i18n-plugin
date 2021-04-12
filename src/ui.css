@@ -3,7 +3,7 @@
   --spacing: 8px;
   --color-white: #fff;
   --color-dark: #aaa;
-  --color-border: #e5e5e5;
+  --color-border: #dfdfdf;
   --color-light: #f3f3f3;
   --color-primary: #18a0fb;
 }
@@ -73,7 +73,7 @@ a {
   font-weight: 400;
   letter-spacing: 0.01em;
   text-decoration: none;
-  color: var(--color-dark);
+  color: var(--color-black);
   background-color: var(--color-white);
   cursor: pointer;
 }
