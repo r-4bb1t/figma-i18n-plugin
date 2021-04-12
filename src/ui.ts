@@ -42,7 +42,6 @@ function listenToPluginMessages(): void {
           document.getElementById('loadedFonts')!.style.display = 'none';
           document.getElementById('loadingFonts')!.style.display = 'block';
         }
-        console.log(payload);
         break;
       case WorkerActionTypes.EXPORT:
         const blob = new Blob([payload], { type: 'application/json' });

@@ -4,6 +4,7 @@
   --color-white: #fff;
   --color-dark: #aaa;
   --color-border: #e5e5e5;
+  --color-light: #f3f3f3;
   --color-primary: #18a0fb;
 }
 
@@ -193,7 +194,7 @@ textarea {
 }
 
 .previewLangBtn:hover {
-  background-color: var(--color-border);
+  background-color: var(--color-light);
 }
 
 #editLangDiv {
@@ -206,6 +207,7 @@ textarea {
 
 #loadingFonts {
   color: var(--color-dark);
+  display: none;
 }
 
 @keyframes loadingDots {
@@ -227,4 +229,8 @@ textarea {
 
 #loadedFonts {
   display: none;
+}
+
+#import {
+  border: none;
 }

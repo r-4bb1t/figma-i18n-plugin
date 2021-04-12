@@ -135,7 +135,7 @@ figma.on('selectionchange', async () => {
     thisNode = id;
   }
   nodeInfo.nodeContents[nowNodeLang].characters = node.characters;
-  figma.currentPage.selection[0].setPluginData('nodeInfo', JSON.stringify(nodeInfo));
+  node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
 
   postMessage({
     type: WorkerActionTypes.SELECTED_NODE,
@@ -203,25 +203,24 @@ function DeleteLang(id: number) {
   figma.currentPage.setPluginData('langList', JSON.stringify(newLangList));
 }
 
-function ApplyGlobalLang(globalLang: number) {
+async function ApplyGlobalLang(globalLang: number) {
   const textNodeList = JSON.parse(figma.currentPage.getPluginData('textNodeList'));
   figma.currentPage.setPluginData('globalLang', globalLang.toString());
   const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
   const rangeFontNames = [] as FontName[];
   textNodeList.map(async (textNodeId: string) => {
     const node = <TextNode>figma.getNodeById(textNodeId);
-    let flag = false;
     for (let i = 0; i < node.characters.length; i++) {
       const fontName = node.getRangeFontName(i, i + 1) as FontName;
       if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
       rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
-      flag = true;
     }
-    if (flag) {
-      postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
-      await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
-      postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
-    }
+  });
+  postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
+  await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
+  postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
+  textNodeList.map(async (textNodeId: string) => {
+    const node = <TextNode>figma.getNodeById(textNodeId);
     if (!node.getPluginData('nodeInfo')) {
       const defaultContents = langList.reduce((acc: any, lang: LangType) => {
         acc[lang.id.toString()] = {
@@ -246,10 +245,21 @@ function ApplyGlobalLang(globalLang: number) {
   });
 }
 
-function SetNodeNowLang(payload: any) {
+async function SetNodeNowLang(payload: any) {
   if (!figma.currentPage.selection[0]) return;
   const newNodeInfo = JSON.parse(figma.currentPage.selection[0].getPluginData('nodeInfo'));
   const node = <TextNode>figma.currentPage.selection[0];
+
+  const rangeFontNames = [] as FontName[];
+  for (let i = 0; i < node.characters.length; i++) {
+    const fontName = node.getRangeFontName(i, i + 1) as FontName;
+    if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
+    rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
+  }
+  postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
+  await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
+  postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
+
   newNodeInfo.nowLangId = payload;
   node.characters = newNodeInfo.nodeContents[`${payload}`].characters;
   figma.currentPage.selection[0].setPluginData('nodeInfo', JSON.stringify(newNodeInfo));
