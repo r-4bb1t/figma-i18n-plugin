@@ -214,10 +214,12 @@ async function ApplyGlobalLang(globalLang: number) {
   const rangeFontNames = [] as FontName[];
   textNodeList.map(async (textNodeId: string) => {
     const node = <TextNode>figma.getNodeById(textNodeId);
-    for (let i = 0; i < node.characters.length; i++) {
-      const fontName = node.getRangeFontName(i, i + 1) as FontName;
-      if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
-      rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
+    if (node?.characters) {
+      for (let i = 0; i < node.characters.length; i++) {
+        const fontName = node.getRangeFontName(i, i + 1) as FontName;
+        if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
+        rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
+      }
     }
   });
   postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
@@ -309,21 +311,25 @@ function importFile(payload: string) {
   figma.currentPage.setPluginData('lang-id-index', `${languages.length}`);
   const rangeFontNames = [] as FontName[];
 
-  languages.map(async ({ id }: any) =>
+  languages.map(async ({ id }: any) =>{
     textNodeList.map(async (textNodeId: string) => {
       const node = <TextNode>figma.getNodeById(textNodeId);
-      let flag = false;
-      for (let i = 0; i < node.characters.length; i++) {
-        const fontName = node.getRangeFontName(i, i + 1) as FontName;
-        if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
-        rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
-        flag = true;
+      if (node?.characters) {
+        for (let i = 0; i < node.characters.length; i++) {
+          const fontName = node.getRangeFontName(i, i + 1) as FontName;
+          if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
+          rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
+        }  
+        const nodeInfo = { nodeContents: i18n[textNodeId], nowLangId: id };
+        node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
       }
-      if (flag) await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
-      const nodeInfo = { nodeContents: i18n[textNodeId], nowLangId: id };
-      node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
+      postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
+      await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
+      postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
+
+      /* 여기서 뭔가 스타일 적용 같은 게 되야할 것 같은 느낌은 TODO? */    
     }),
-  );
+  });
   ApplyGlobalLang(currentLang);
 }
 // Show the plugin interface (https://www.figma.com/plugin-docs/creating-ui/)
