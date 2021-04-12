@@ -81,7 +81,12 @@ figma.on('selectionchange', async () => {
   const rangeFontNames = [] as FontName[];
   for (let i = 0; i < node.characters.length; i++) {
     const fontName = node.getRangeFontName(i, i + 1) as FontName;
-    if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
+    if (
+      rangeFontNames.some(
+        (name) => name.family === fontName.family && name.style === fontName.style,
+      )
+    )
+      continue;
     rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
   }
 
@@ -217,7 +222,12 @@ async function ApplyGlobalLang(globalLang: number) {
     if (node?.characters) {
       for (let i = 0; i < node.characters.length; i++) {
         const fontName = node.getRangeFontName(i, i + 1) as FontName;
-        if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
+        if (
+          rangeFontNames.some(
+            (name) => name.family === fontName.family && name.style === fontName.style,
+          )
+        )
+          continue;
         rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
       }
     }
@@ -225,31 +235,30 @@ async function ApplyGlobalLang(globalLang: number) {
   postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
   await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
   postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
+  console.log(rangeFontNames);
   textNodeList.map(async (textNodeId: string) => {
     const node = <TextNode>figma.getNodeById(textNodeId);
-    if (node?.characters) {
-      if (!node.getPluginData('nodeInfo')) {
-        const defaultContents = langList.reduce((acc: any, lang: LangType) => {
-          acc[lang.id.toString()] = {
-            characters: node.characters,
-            style: {},
-            characterStyleOverrides: {},
-          };
-          return acc;
-        }, {});
-        node.setPluginData(
-          'nodeInfo',
-          JSON.stringify({
-            nowLangId: figma.currentPage.getPluginData('globalLang'),
-            nodeContents: defaultContents,
-          }),
-        );
-      }
-      const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
-      nodeInfo.nowLangId = globalLang;
-      node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
-      node.characters = nodeInfo.nodeContents[globalLang].characters;
+    if (!node.getPluginData('nodeInfo')) {
+      const defaultContents = langList.reduce((acc: any, lang: LangType) => {
+        acc[lang.id.toString()] = {
+          characters: node.characters,
+          style: {},
+          characterStyleOverrides: {},
+        };
+        return acc;
+      }, {});
+      node.setPluginData(
+        'nodeInfo',
+        JSON.stringify({
+          nowLangId: figma.currentPage.getPluginData('globalLang'),
+          nodeContents: defaultContents,
+        }),
+      );
     }
+    const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
+    nodeInfo.nowLangId = globalLang;
+    node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
+    node.characters = nodeInfo.nodeContents[globalLang].characters;
   });
 }
 
@@ -261,7 +270,12 @@ async function SetNodeNowLang(payload: any) {
   const rangeFontNames = [] as FontName[];
   for (let i = 0; i < node.characters.length; i++) {
     const fontName = node.getRangeFontName(i, i + 1) as FontName;
-    if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
+    if (
+      rangeFontNames.some(
+        (name) => name.family === fontName.family && name.style === fontName.style,
+      )
+    )
+      continue;
     rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
   }
   postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
@@ -367,7 +381,7 @@ function exportFile() {
   postMessage({ type: WorkerActionTypes.EXPORT, payload: JSON.stringify(exportMap) });
 }
 
-function importFile(payload: string) {
+async function importFile(payload: string) {
   const { content, currentLang } = JSON.parse(payload);
   const { textNodeList, i18n, languages, globalLang } = JSON.parse(content);
   figma.currentPage.setPluginData('textNodeList', JSON.stringify(textNodeList));
@@ -382,19 +396,23 @@ function importFile(payload: string) {
       if (node?.characters) {
         for (let i = 0; i < node.characters.length; i++) {
           const fontName = node.getRangeFontName(i, i + 1) as FontName;
-          if (rangeFontNames.some((name) => name.family === fontName.family)) continue;
+          if (
+            rangeFontNames.some(
+              (name) => name.family === fontName.family && name.style === fontName.style,
+            )
+          )
+            continue;
           rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
-        }  
+        }
         const nodeInfo = { nodeContents: i18n[textNodeId], nowLangId: id };
         node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
       }
-      postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
-      await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
-      postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
-
-      /* 여기서 뭔가 스타일 적용 같은 게 되야할 것 같은 느낌은 TODO? */    
+      /* 여기서 뭔가 스타일 적용 같은 게 되야할 것 같은 느낌은 TODO? */
     }),
   );
+  postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
+  await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
+  postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
   ApplyGlobalLang(currentLang);
 }
 // Show the plugin interface (https://www.figma.com/plugin-docs/creating-ui/)
