@@ -78,7 +78,6 @@ figma.on('selectionchange', async () => {
     });
     return;
   }
-
   const rangeFontNames = [] as FontName[];
   for (let i = 0; i < node.characters.length; i++) {
     const fontName = node.getRangeFontName(i, i + 1) as FontName;
@@ -90,13 +89,14 @@ figma.on('selectionchange', async () => {
   await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
   postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
 
+  const styles = getStyle(id);
   const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
   const defaultContents = langList.reduce((acc: any, lang: LangType) => {
     acc[lang.id.toString()] = {
       characters: node.characters,
-      style: {},
-      characterStyleOverrides: [],
-      styleOverrideTable: {},
+      style: styles.style,
+      characterStyleOverrides: styles.characterStyleOverrides,
+      styleOverrideTable: styles.styleOverrideTable,
     };
     return acc;
   }, {});
@@ -279,6 +279,69 @@ async function SetNodeNowLang(payload: any) {
     type: WorkerActionTypes.SELECTED_NODE,
     payload: { id: node.id, type: node.type || null, contents: contents },
   });
+}
+
+interface StyleType {
+  fontSize?: number;
+  fontName?: FontName;
+  textCase?: TextCase;
+  textDecoration?: TextDecoration;
+  letterSpacing?: LetterSpacing;
+  lineHeight?: LineHeight;
+}
+
+interface StyleOverridesType {
+  [key: string]: any;
+}
+
+function getStyle(id: string) {
+  const node = <TextNode>figma.getNodeById(id);
+  let defaultStyle = {
+    fontSize: node.fontSize !== figma.mixed ? node.fontSize : ((null as unknown) as number),
+    fontName: node.fontName !== figma.mixed ? node.fontName : ((null as unknown) as FontName),
+    textCase: node.textCase !== figma.mixed ? node.textCase : ((null as unknown) as TextCase),
+    textDecoration:
+      node.textDecoration !== figma.mixed
+        ? node.textDecoration
+        : ((null as unknown) as TextDecoration),
+    letterSpacing:
+      node.letterSpacing !== figma.mixed
+        ? node.letterSpacing
+        : ((null as unknown) as LetterSpacing),
+    lineHeight:
+      node.lineHeight !== figma.mixed ? node.lineHeight : ((null as unknown) as LineHeight),
+  } as StyleType;
+  let characterStyleOverrides = [];
+  let styleOverrideTable = {} as StyleOverridesType;
+  let tableIndexAll = 0;
+  for (let i = 0; i < node.characters.length; i++) {
+    const style = {} as StyleType;
+    if (!defaultStyle.fontSize) style.fontSize = <number>node.getRangeFontSize(i, i + 1);
+    if (!defaultStyle.fontName) style.fontName = <FontName>node.getRangeFontName(i, i + 1);
+    if (!defaultStyle.textCase) style.textCase = <TextCase>node.getRangeTextCase(i, i + 1);
+    if (!defaultStyle.textDecoration)
+      style.textDecoration = <TextDecoration>node.getRangeTextDecoration(i, i + 1);
+    if (!defaultStyle.letterSpacing)
+      style.letterSpacing = <LetterSpacing>node.getRangeLetterSpacing(i, i + 1);
+    if (!defaultStyle.lineHeight) style.lineHeight = <LineHeight>node.getRangeLineHeight(i, i + 1);
+    let tableIndex = Object.keys(styleOverrideTable).findIndex((key) => {
+      return (
+        JSON.stringify(Object.entries(styleOverrideTable[key])) ===
+        JSON.stringify(Object.entries(style))
+      );
+    });
+    if (tableIndex != -1) characterStyleOverrides.push(tableIndex);
+    else {
+      characterStyleOverrides.push(tableIndexAll);
+      styleOverrideTable[tableIndexAll] = style;
+      tableIndexAll++;
+    }
+  }
+  return {
+    style: defaultStyle,
+    characterStyleOverrides: characterStyleOverrides,
+    styleOverrideTable: styleOverrideTable,
+  };
 }
 
 function exportFile() {
