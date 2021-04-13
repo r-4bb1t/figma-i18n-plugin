@@ -42,7 +42,6 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
 let thisNode = (null as unknown) as string;
 
 async function handleSelection(id: string) {
-  if (!figma.currentPage.selection[0]) return;
   const node = figma.getNodeById(id);
   if (!node || node.type !== 'TEXT') {
     postMessage({
@@ -258,8 +257,8 @@ async function ApplyGlobalLang(globalLang: number) {
 
 async function SetNodeNowLang(payload: any) {
   if (!figma.currentPage.selection[0]) return;
-  const newNodeInfo = JSON.parse(figma.currentPage.selection[0].getPluginData('nodeInfo'));
   const node = <TextNode>figma.currentPage.selection[0];
+  const newNodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
 
   const rangeFontNames = [] as FontName[];
   for (let i = 0; i < node.characters.length; i++) {
@@ -277,8 +276,18 @@ async function SetNodeNowLang(payload: any) {
   postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
 
   newNodeInfo.nowLangId = payload;
+  if (!newNodeInfo.nodeContents[`${payload}`]) {
+    const styles = getStyle(node.id);
+    newNodeInfo.nodeContents[`${payload}`] = {
+      characters: node.characters,
+      style: styles.style,
+      characterStyleOverrides: styles.characterStyleOverrides,
+      styleOverrideTable: styles.styleOverrideTable,
+    };
+    console.log(newNodeInfo.nodeContents);
+  }
   node.characters = newNodeInfo.nodeContents[`${payload}`].characters;
-  figma.currentPage.selection[0].setPluginData('nodeInfo', JSON.stringify(newNodeInfo));
+  node.setPluginData('nodeInfo', JSON.stringify(newNodeInfo));
 
   const nodeContents = newNodeInfo.nodeContents;
   let contents = {
