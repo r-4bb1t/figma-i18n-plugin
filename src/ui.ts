@@ -137,6 +137,11 @@ function init(payload: any) {
   const globalSelect = document.getElementById('globalSelect') as HTMLSelectElement;
   langList = payload.langList;
   globalLang = payload.globalLang;
+  globalSelect.options.length = 0;
+  for (let i = 0; i < document.getElementById('previewTab')!.children.length; i++)
+    document
+      .getElementById('previewTab')!
+      .removeChild(document.getElementById('previewTab')!.children[i]);
   for (let i = 0; i < langList.length; i++) {
     const newOption = document.createElement('option');
     newOption.innerText = langList[i].name;

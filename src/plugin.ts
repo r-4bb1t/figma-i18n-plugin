@@ -136,8 +136,6 @@ figma.on('selectionchange', async () => {
   });
 });
 
-figma.on('currentpagechange', () => Init());
-
 function getTextNode(root: BaseNode) {
   if (
     root.type === 'RECTANGLE' ||
@@ -241,13 +239,12 @@ async function ApplyGlobalLang(globalLang: number) {
       }
       const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
       nodeInfo.nowLangId = globalLang;
-      node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
-      node.characters = nodeInfo.nodeContents[globalLang].characters;
+      node.characters = nodeInfo.nodeContents[globalLang]?.characters || node.characters;
       setStyle(
         textNodeId,
-        nodeInfo.nodeContents[globalLang].style,
-        nodeInfo.nodeContents[globalLang].characterStyleOverrides,
-        nodeInfo.nodeContents[globalLang].styleOverrideTable,
+        nodeInfo.nodeContents[globalLang]?.style || getDefaultStyle(textNodeId),
+        nodeInfo.nodeContents[globalLang]?.characterStyleOverrides,
+        nodeInfo.nodeContents[globalLang]?.styleOverrideTable,
       );
     }
   });
@@ -356,9 +353,9 @@ async function setStyle(
   }
 }
 
-function getStyle(id: string) {
+function getDefaultStyle(id: string) {
   const node = <TextNode>figma.getNodeById(id);
-  let defaultStyle = {
+  return {
     fontSize: node.fontSize !== figma.mixed ? node.fontSize : ((null as unknown) as number),
     fontName: node.fontName !== figma.mixed ? node.fontName : ((null as unknown) as FontName),
     textCase: node.textCase !== figma.mixed ? node.textCase : ((null as unknown) as TextCase),
@@ -378,6 +375,11 @@ function getStyle(id: string) {
     textStyleId:
       node.textStyleId !== figma.mixed ? node.textStyleId : ((null as unknown) as string),
   } as StyleType;
+}
+
+function getStyle(id: string) {
+  const node = <TextNode>figma.getNodeById(id);
+  let defaultStyle = getDefaultStyle(id);
   let characterStyleOverrides = [];
   let styleOverrideTable = {} as StyleOverridesType;
   let tableIndexAll = 0;
@@ -440,6 +442,7 @@ async function importFile(payload: string) {
   figma.currentPage.setPluginData('globalLang', `${languages[0].id}`);
   figma.currentPage.setPluginData('langList', JSON.stringify(languages));
   figma.currentPage.setPluginData('lang-id-index', `${languages.length}`);
+  Init();
   const rangeFontNames = [] as FontName[];
 
   languages.map(async ({ id }: any) =>
