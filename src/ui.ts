@@ -71,13 +71,11 @@ function closeWithEscapeKey(): void {
 }
 
 function buttonListeners(): void {
-  console.log('BIND BUTTON LISTENER');
   document.addEventListener(
     'change',
     async (event) => {
       const target = event.target as HTMLInputElement;
       if (target.id === 'import') {
-        console.log('import button pressed');
         const files = target?.files;
         if (!files || !files.length) return;
         const file = files[0];

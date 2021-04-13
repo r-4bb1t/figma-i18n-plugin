@@ -41,9 +41,8 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
 
 let thisNode = (null as unknown) as string;
 
-figma.on('selectionchange', async () => {
+async function handleSelection(id: string) {
   if (!figma.currentPage.selection[0]) return;
-  const id = figma.currentPage.selection[0].id;
   const node = figma.getNodeById(id);
   if (!node || node.type !== 'TEXT') {
     postMessage({
@@ -134,6 +133,11 @@ figma.on('selectionchange', async () => {
     type: WorkerActionTypes.SELECTED_NODE,
     payload: { id: id, type: node?.type || null, contents: contents },
   });
+}
+
+figma.on('selectionchange', async () => {
+  const id = figma.currentPage.selection[0].id;
+  handleSelection(id);
 });
 
 function getTextNode(root: BaseNode) {
@@ -167,6 +171,8 @@ async function Init() {
     langList: JSON.parse(figma.currentPage.getPluginData('langList')),
     globalLang: parseInt(figma.currentPage.getPluginData('globalLang')),
   };
+  const id = figma.currentPage.selection[0]?.id;
+  if (id) handleSelection(id);
   postMessage({ type: WorkerActionTypes.INIT, payload: data });
 }
 
@@ -232,7 +238,7 @@ async function ApplyGlobalLang(globalLang: number) {
         node.setPluginData(
           'nodeInfo',
           JSON.stringify({
-            nowLangId: figma.currentPage.getPluginData('globalLang'),
+            nowLangId: globalLang,
             nodeContents: defaultContents,
           }),
         );
@@ -419,11 +425,30 @@ function getStyle(id: string) {
 function exportFile() {
   const textNodeList = JSON.parse(figma.currentPage.getPluginData('textNodeList'));
   const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+  const globalLang = figma.currentPage.getPluginData('globalLang');
   const exportMap = {
     languages: langList,
     textNodeList,
     i18n: textNodeList.reduce((prevObject: Object, textNodeId: string) => {
       const node = <TextNode>figma.getNodeById(textNodeId);
+      const styles = getStyle(textNodeId);
+      if (!node.getPluginData('nodeInfo')) {
+        node.setPluginData(
+          'nodeInfo',
+          JSON.stringify({
+            nodeContents: langList.reduce((acc: any, lang: LangType) => {
+              acc[lang.id.toString()] = {
+                characters: node.characters,
+                style: styles.style,
+                characterStyleOverrides: styles.characterStyleOverrides,
+                styleOverrideTable: styles.styleOverrideTable,
+              };
+              return acc;
+            }, {}),
+            nowLangId: globalLang,
+          }),
+        );
+      }
       const { nodeContents } = JSON.parse(node.getPluginData('nodeInfo'));
       return {
         ...prevObject,
@@ -431,7 +456,6 @@ function exportFile() {
       };
     }, {}),
   };
-  console.log('exportAll', exportMap);
   postMessage({ type: WorkerActionTypes.EXPORT, payload: JSON.stringify(exportMap) });
 }
 
