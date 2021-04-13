@@ -1,27 +1,9 @@
 import { UIActionTypes, UIAction, WorkerActionTypes, WorkerAction, LangType } from './types';
 
-// Sends a message to the plugin UI
 function postMessage({ type, payload }: WorkerAction): void {
   figma.ui.postMessage({ type, payload });
 }
 
-// Creates a rectangle (demo purposes)
-function createRectangle(): void {
-  const rect = figma.createRectangle();
-  const width = 100;
-  const height = 100;
-
-  rect.resize(width, height);
-  rect.x = figma.viewport.center.x - Math.round(width / 2);
-  rect.y = figma.viewport.center.y - Math.round(height / 2);
-  figma.currentPage.appendChild(rect);
-  figma.currentPage.selection = [rect];
-  figma.viewport.scrollAndZoomIntoView([rect]);
-
-  postMessage({ type: WorkerActionTypes.CREATE_RECTANGLE_NOTIFY, payload: 'Rectangle created 👍' });
-}
-
-// Listen to messages received from the plugin UI (src/ui/ui.ts)
 figma.ui.onmessage = function ({ type, payload }: UIAction): void {
   switch (type) {
     case UIActionTypes.INIT:
@@ -47,14 +29,6 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
       break;
     case UIActionTypes.SET_NODE_NOW_LANG:
       SetNodeNowLang(payload);
-      break;
-    case UIActionTypes.SET_PLUGIN_DATA:
-      figma
-        .getNodeById(figma.currentPage.selection[0].id)
-        ?.setPluginData('hi', new Date().toString());
-      break;
-    case UIActionTypes.GET_PLUGIN_DATA:
-      console.log(figma.getNodeById(figma.currentPage.selection[0].id)?.getPluginData('hi'));
       break;
     case UIActionTypes.IMPORT:
       importFile(payload);
@@ -138,12 +112,22 @@ figma.on('selectionchange', async () => {
   };
 
   if (thisNode !== id) {
-    if (nowNodeLang !== parseInt(figma.currentPage.getPluginData('globalLang')))
+    if (nowNodeLang !== parseInt(figma.currentPage.getPluginData('globalLang'))) {
       node.characters = nodeInfo.nodeContents[nowNodeLang].characters;
+      setStyle(
+        id,
+        nodeInfo.nodeContents[nowNodeLang].style,
+        nodeInfo.nodeContents[nowNodeLang].characterStyleOverrides,
+        nodeInfo.nodeContents[nowNodeLang].styleOverrideTable,
+      );
+    }
     thisNode = id;
   }
 
   nodeInfo.nodeContents[nowNodeLang].characters = node.characters;
+  nodeInfo.nodeContents[nowNodeLang].style = styles.style;
+  nodeInfo.nodeContents[nowNodeLang].characterStyleOverrides = styles.characterStyleOverrides;
+  nodeInfo.nodeContents[nowNodeLang].styleOverrideTable = styles.styleOverrideTable;
   node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
 
   postMessage({
@@ -235,15 +219,14 @@ async function ApplyGlobalLang(globalLang: number) {
   postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
   await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
   postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
-  console.log(rangeFontNames);
-  textNodeList.map(async (textNodeId: string) => {
+  textNodeList.map((textNodeId: string) => {
     const node = <TextNode>figma.getNodeById(textNodeId);
     if (node?.characters) {
       if (!node.getPluginData('nodeInfo')) {
         const defaultContents = langList.reduce((acc: any, lang: LangType) => {
           acc[lang.id.toString()] = {
             characters: node.characters,
-            style: {},
+            style: getStyle(textNodeId),
             characterStyleOverrides: {},
           };
           return acc;
@@ -260,6 +243,12 @@ async function ApplyGlobalLang(globalLang: number) {
       nodeInfo.nowLangId = globalLang;
       node.setPluginData('nodeInfo', JSON.stringify(nodeInfo));
       node.characters = nodeInfo.nodeContents[globalLang].characters;
+      setStyle(
+        textNodeId,
+        nodeInfo.nodeContents[globalLang].style,
+        nodeInfo.nodeContents[globalLang].characterStyleOverrides,
+        nodeInfo.nodeContents[globalLang].styleOverrideTable,
+      );
     }
   });
 }
@@ -295,6 +284,13 @@ async function SetNodeNowLang(payload: any) {
     nodeContents: nodeContents,
   };
 
+  setStyle(
+    node.id,
+    newNodeInfo.nodeContents[payload].style,
+    newNodeInfo.nodeContents[payload].characterStyleOverrides,
+    newNodeInfo.nodeContents[payload].styleOverrideTable,
+  );
+
   postMessage({
     type: WorkerActionTypes.SELECTED_NODE,
     payload: { id: node.id, type: node.type || null, contents: contents },
@@ -308,10 +304,54 @@ interface StyleType {
   textDecoration?: TextDecoration;
   letterSpacing?: LetterSpacing;
   lineHeight?: LineHeight;
+  fills?: Paint[];
 }
 
 interface StyleOverridesType {
   [key: string]: any;
+}
+
+async function setStyle(
+  id: string,
+  style: StyleType,
+  characterStyleOverrides: number[],
+  styleOverrideTable: StyleOverridesType,
+) {
+  const node = <TextNode>figma.getNodeById(id);
+  if (style.fontSize) node.fontSize = style.fontSize;
+  if (style.fontName) node.fontName = style.fontName;
+  if (style.textCase) node.textCase = style.textCase;
+  if (style.textDecoration) node.textDecoration = style.textDecoration;
+  if (style.letterSpacing) node.letterSpacing = style.letterSpacing;
+  if (style.lineHeight) node.lineHeight = style.lineHeight;
+  if (style.fills) node.fills = style.fills;
+  if (!styleOverrideTable || !characterStyleOverrides) return;
+  for (let i = 0; i < node.characters.length; i++) {
+    if (styleOverrideTable[characterStyleOverrides[i]].fontSize)
+      node.setRangeFontSize(i, i + 1, styleOverrideTable[characterStyleOverrides[i]].fontSize);
+    if (styleOverrideTable[characterStyleOverrides[i]].fontName) {
+      await figma.loadFontAsync(styleOverrideTable[characterStyleOverrides[i]].fontName);
+      node.setRangeFontName(i, i + 1, styleOverrideTable[characterStyleOverrides[i]].fontName);
+    }
+    if (styleOverrideTable[characterStyleOverrides[i]].textCase)
+      node.setRangeTextCase(i, i + 1, styleOverrideTable[characterStyleOverrides[i]].textCase);
+    if (styleOverrideTable[characterStyleOverrides[i]].textDecoration)
+      node.setRangeTextDecoration(
+        i,
+        i + 1,
+        styleOverrideTable[characterStyleOverrides[i]].textDecoration,
+      );
+    if (styleOverrideTable[characterStyleOverrides[i]].letterSpacing)
+      node.setRangeLetterSpacing(
+        i,
+        i + 1,
+        styleOverrideTable[characterStyleOverrides[i]].letterSpacing,
+      );
+    if (styleOverrideTable[characterStyleOverrides[i]].lineHeight)
+      node.setRangeLineHeight(i, i + 1, styleOverrideTable[characterStyleOverrides[i]].lineHeight);
+    if (styleOverrideTable[characterStyleOverrides[i]].fills)
+      node.setRangeFills(i, i + 1, styleOverrideTable[characterStyleOverrides[i]].fills);
+  }
 }
 
 function getStyle(id: string) {
@@ -330,6 +370,7 @@ function getStyle(id: string) {
         : ((null as unknown) as LetterSpacing),
     lineHeight:
       node.lineHeight !== figma.mixed ? node.lineHeight : ((null as unknown) as LineHeight),
+    fills: node.fills !== figma.mixed ? node.fills : ((null as unknown) as Paint[]),
   } as StyleType;
   let characterStyleOverrides = [];
   let styleOverrideTable = {} as StyleOverridesType;
@@ -344,6 +385,7 @@ function getStyle(id: string) {
     if (!defaultStyle.letterSpacing)
       style.letterSpacing = <LetterSpacing>node.getRangeLetterSpacing(i, i + 1);
     if (!defaultStyle.lineHeight) style.lineHeight = <LineHeight>node.getRangeLineHeight(i, i + 1);
+    if (!defaultStyle.fills) style.fills = <Paint[]>node.getRangeFills(i, i + 1);
     let tableIndex = Object.keys(styleOverrideTable).findIndex((key) => {
       return (
         JSON.stringify(Object.entries(styleOverrideTable[key])) ===

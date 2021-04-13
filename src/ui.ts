@@ -21,9 +21,6 @@ function listenToPluginMessages(): void {
       case WorkerActionTypes.INIT:
         init(payload);
         break;
-      case WorkerActionTypes.CREATE_RECTANGLE_NOTIFY:
-        payload && alert(payload);
-        break;
       case WorkerActionTypes.SELECTED_NODE:
         ChangeNodeId(payload.id);
         if (payload.type !== 'TEXT')
@@ -122,12 +119,6 @@ function buttonListeners(): void {
         break;
       case 'closeBtn':
         postMessage({ type: UIActionTypes.CLOSE });
-        break;
-      case 'setPluginData':
-        postMessage({ type: UIActionTypes.SET_PLUGIN_DATA, payload: new Date().toString() });
-        break;
-      case 'getPluginData':
-        postMessage({ type: UIActionTypes.GET_PLUGIN_DATA, payload: new Date().toString() });
         break;
       case 'export':
         postMessage({ type: UIActionTypes.EXPORT });
