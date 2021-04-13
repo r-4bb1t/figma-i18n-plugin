@@ -304,7 +304,9 @@ interface StyleType {
   textDecoration?: TextDecoration;
   letterSpacing?: LetterSpacing;
   lineHeight?: LineHeight;
-  fills?: Paint[];
+  fills?: ReadonlyArray<Paint>;
+  fillStyleId?: string;
+  textStyleId?: string;
 }
 
 interface StyleOverridesType {
@@ -370,7 +372,11 @@ function getStyle(id: string) {
         : ((null as unknown) as LetterSpacing),
     lineHeight:
       node.lineHeight !== figma.mixed ? node.lineHeight : ((null as unknown) as LineHeight),
-    fills: node.fills !== figma.mixed ? node.fills : ((null as unknown) as Paint[]),
+    fills: node.fills !== figma.mixed ? node.fills : ((null as unknown) as ReadonlyArray<Paint>),
+    fillStyleId:
+      node.fillStyleId !== figma.mixed ? node.fillStyleId : ((null as unknown) as string),
+    textStyleId:
+      node.textStyleId !== figma.mixed ? node.textStyleId : ((null as unknown) as string),
   } as StyleType;
   let characterStyleOverrides = [];
   let styleOverrideTable = {} as StyleOverridesType;
@@ -386,6 +392,8 @@ function getStyle(id: string) {
       style.letterSpacing = <LetterSpacing>node.getRangeLetterSpacing(i, i + 1);
     if (!defaultStyle.lineHeight) style.lineHeight = <LineHeight>node.getRangeLineHeight(i, i + 1);
     if (!defaultStyle.fills) style.fills = <Paint[]>node.getRangeFills(i, i + 1);
+    if (!defaultStyle.fillStyleId) style.fillStyleId = <string>node.getRangeFillStyleId(i, i + 1);
+    if (!defaultStyle.textStyleId) style.textStyleId = <string>node.getRangeTextStyleId(i, i + 1);
     let tableIndex = Object.keys(styleOverrideTable).findIndex((key) => {
       return (
         JSON.stringify(Object.entries(styleOverrideTable[key])) ===
