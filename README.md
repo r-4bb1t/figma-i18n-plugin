@@ -1,4 +1,5 @@
-![figma-i18n-plugin](https://user-images.githubusercontent.com/52532871/114678183-fb56b500-9d45-11eb-8e1f-a281c35d4baa.png)
+![figma-i18n-plugin](https://user-images.githubusercontent.com/52532871/114679205-ec243700-9d46-11eb-9dac-6432a4a69b26.png)
+
 ![Figma i18n Plugin](.github/cover.gif)
 
 **Figma plugin for i18n**
