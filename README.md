@@ -48,3 +48,5 @@
 ## License
 
 MIT
+
+Made with ♥️ by [Promedius](https://promedius.ai)

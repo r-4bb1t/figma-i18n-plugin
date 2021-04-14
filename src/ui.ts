@@ -75,7 +75,7 @@ function buttonListeners(): void {
     'change',
     async (event) => {
       const target = event.target as HTMLInputElement;
-      if (target.id === 'import') {
+      if (target.id === 'importFile') {
         const files = target?.files;
         if (!files || !files.length) return;
         const file = files[0];
