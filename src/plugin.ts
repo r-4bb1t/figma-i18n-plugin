@@ -68,7 +68,7 @@ async function handleSelection(id: string) {
   postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
 
   const styles = getStyle(id);
-  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+  const langList = JSON.parse(figma.root.getPluginData('langList'));
   const defaultContents = langList.reduce((acc: any, lang: LangType) => {
     acc[lang.id.toString()] = {
       characters: node.characters,
@@ -83,7 +83,7 @@ async function handleSelection(id: string) {
     node.setPluginData(
       'nodeInfo',
       JSON.stringify({
-        nowLangId: figma.currentPage.getPluginData('globalLang'),
+        nowLangId: figma.root.getPluginData('globalLang'),
         nodeContents: defaultContents,
       }),
     );
@@ -111,7 +111,7 @@ async function handleSelection(id: string) {
   };
 
   if (thisNode !== id) {
-    if (nowNodeLang !== parseInt(figma.currentPage.getPluginData('globalLang'))) {
+    if (nowNodeLang !== parseInt(figma.root.getPluginData('globalLang'))) {
       node.characters = nodeInfo.nodeContents[nowNodeLang].characters;
       setStyle(
         id,
@@ -136,8 +136,8 @@ async function handleSelection(id: string) {
 }
 
 figma.on('selectionchange', async () => {
-  const id = figma.currentPage.selection[0].id;
-  handleSelection(id);
+  const id = figma.currentPage?.selection[0]?.id;
+  id && handleSelection(id);
 });
 
 function getTextNode(root: BaseNode) {
@@ -158,18 +158,18 @@ function getTextNode(root: BaseNode) {
 }
 
 async function Init() {
-  if (!figma.currentPage.getPluginData('langList'))
-    figma.currentPage.setPluginData('langList', `[{ "id": 0, "name": "default" }]`);
+  if (!figma.root.getPluginData('langList'))
+    figma.root.setPluginData('langList', `[{ "id": 0, "name": "default" }]`);
   const textNodeList = getTextNode(figma.currentPage);
-  figma.currentPage.setPluginData('textNodeList', JSON.stringify(textNodeList));
-  if (!figma.currentPage.getPluginData('globalLang'))
-    figma.currentPage.setPluginData(
+  figma.root.setPluginData('textNodeList', JSON.stringify(textNodeList));
+  if (!figma.root.getPluginData('globalLang'))
+    figma.root.setPluginData(
       'globalLang',
-      JSON.parse(figma.currentPage.getPluginData('langList'))[0].id.toString(),
+      JSON.parse(figma.root.getPluginData('langList'))[0].id.toString(),
     );
   const data = {
-    langList: JSON.parse(figma.currentPage.getPluginData('langList')),
-    globalLang: parseInt(figma.currentPage.getPluginData('globalLang')),
+    langList: JSON.parse(figma.root.getPluginData('langList')),
+    globalLang: parseInt(figma.root.getPluginData('globalLang')),
   };
   const id = figma.currentPage.selection[0]?.id;
   if (id) handleSelection(id);
@@ -177,33 +177,33 @@ async function Init() {
 }
 
 function AddLang() {
-  const id = parseInt(figma.currentPage.getPluginData('lang-id-index')) + 1 || 1;
-  figma.currentPage.setPluginData('lang-id-index', id.toString());
-  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+  const id = parseInt(figma.root.getPluginData('lang-id-index')) + 1 || 1;
+  figma.root.setPluginData('lang-id-index', id.toString());
+  const langList = JSON.parse(figma.root.getPluginData('langList'));
   langList.push({ id: id, name: `lang(${id})` });
-  figma.currentPage.setPluginData('langList', JSON.stringify(langList));
+  figma.root.setPluginData('langList', JSON.stringify(langList));
   postMessage({ type: WorkerActionTypes.ADD_LANG, payload: id });
 }
 
 function EditLang(payload: any) {
-  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+  const langList = JSON.parse(figma.root.getPluginData('langList'));
   const newLangList = langList.map((item: any) => {
     if (item.id === payload.id) return { id: item.id, name: payload.name };
     return item;
   });
-  figma.currentPage.setPluginData('langList', JSON.stringify(newLangList));
+  figma.root.setPluginData('langList', JSON.stringify(newLangList));
 }
 
 function DeleteLang(id: number) {
-  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+  const langList = JSON.parse(figma.root.getPluginData('langList'));
   const newLangList = langList.filter((item: any) => item.id !== id);
-  figma.currentPage.setPluginData('langList', JSON.stringify(newLangList));
+  figma.root.setPluginData('langList', JSON.stringify(newLangList));
 }
 
 async function ApplyGlobalLang(globalLang: number) {
   const textNodeList = JSON.parse(figma.currentPage.getPluginData('textNodeList'));
-  figma.currentPage.setPluginData('globalLang', globalLang.toString());
-  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
+  figma.root.setPluginData('globalLang', globalLang.toString());
+  const langList = JSON.parse(figma.root.getPluginData('langList'));
   const rangeFontNames = [] as FontName[];
   textNodeList.map(async (textNodeId: string) => {
     const node = <TextNode>figma.getNodeById(textNodeId);
@@ -424,8 +424,8 @@ function getStyle(id: string) {
 
 function exportFile() {
   const textNodeList = JSON.parse(figma.currentPage.getPluginData('textNodeList'));
-  const langList = JSON.parse(figma.currentPage.getPluginData('langList'));
-  const globalLang = figma.currentPage.getPluginData('globalLang');
+  const langList = JSON.parse(figma.root.getPluginData('langList'));
+  const globalLang = figma.root.getPluginData('globalLang');
   const exportMap = {
     languages: langList,
     textNodeList,
@@ -463,9 +463,9 @@ async function importFile(payload: string) {
   const { content, currentLang } = JSON.parse(payload);
   const { textNodeList, i18n, languages, globalLang } = JSON.parse(content);
   figma.currentPage.setPluginData('textNodeList', JSON.stringify(textNodeList));
-  figma.currentPage.setPluginData('globalLang', `${languages[0].id}`);
-  figma.currentPage.setPluginData('langList', JSON.stringify(languages));
-  figma.currentPage.setPluginData('lang-id-index', `${languages.length}`);
+  figma.root.setPluginData('globalLang', `${languages[0].id}`);
+  figma.root.setPluginData('langList', JSON.stringify(languages));
+  figma.root.setPluginData('lang-id-index', `${languages.length}`);
   Init();
   const rangeFontNames = [] as FontName[];
 
