@@ -1,8 +1,8 @@
 {
   "private": true,
-  "name": "figma-plugin-typescript-boilerplate",
+  "name": "figma-i18n-plugin",
   "version": "1.0.0",
-  "description": "Figma plugin TypeScript boilerplate to start developing right away.",
+  "description": "Figma plugin for i18n",
   "scripts": {
     "start": "npm run dev",
     "dev": "webpack --watch",
@@ -22,16 +22,16 @@
     "test:watch": "npm run test:base -- --watch"
   },
   "author": {
-    "name": "Aarón García Hervás",
-    "email": "aarongarciahervas@gmail.com",
-    "url": "https://twitter.com/aarongarciah"
+    "name": "r4bb1t",
+    "email": "r4bb1t@korea.ac.kr",
+    "url": "https://github.com/r-4bb1t"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aarongarciah/figma-plugin-typescript-boilerplate"
+    "url": "https://github.com/r-4bb1t/figma-i18n-plugin"
   },
-  "homepage": "https://github.com/aarongarciah/figma-plugin-typescript-boilerplate#readme",
+  "homepage": "https://github.com/r-4bb1t/figma-i18n-plugin#readme",
   "devDependencies": {
     "@types/figma": "^1.0.3",
     "@types/jest": "^26.0.22",
@@ -65,11 +65,10 @@
     "figma",
     "plugin",
     "figma plugin",
-    "boilerplate",
-    "typescript",
-    "eslint",
-    "stylelint",
-    "prettier"
+    "i18n",
+    "internationalization",
+    "interpret",
+    "language"
   ],
   "husky": {
     "hooks": {
