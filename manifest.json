@@ -1,7 +1,7 @@
 {
   "name": "Figma i18n Plugin",
   "api": "1.0.0",
-  "id": "6ba7b8109dad11d180b400c04fd430c8",
+  "id": "964091801268277395",
   "main": "dist/plugin.js",
   "ui": "dist/ui.html"
 }
