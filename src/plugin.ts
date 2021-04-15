@@ -89,7 +89,7 @@ async function handleSelection(id: string) {
     const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
     const nowNodeLang = parseInt(nodeInfo.nowLangId);
     const nodeContents = nodeInfo.nodeContents;
-    let contents = {
+    const contents = {
       characters: node.characters || null,
       nowNodeLang: nowNodeLang,
       nodeContents: nodeContents,
@@ -103,7 +103,7 @@ async function handleSelection(id: string) {
   const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
   const nowNodeLang = parseInt(nodeInfo.nowLangId);
   const nodeContents = nodeInfo.nodeContents;
-  let contents = {
+  const contents = {
     characters: node.characters || null,
     nowNodeLang: nowNodeLang,
     nodeContents: nodeContents,
@@ -152,7 +152,7 @@ function getTextNode(root: BaseNode) {
     return [];
   if (root.type === 'TEXT') return [root.id];
   let textChild = [] as string[];
-  for (let child of root.children) textChild = textChild.concat(getTextNode(child));
+  for (const child of root.children) textChild = textChild.concat(getTextNode(child));
   return textChild;
 }
 
@@ -290,7 +290,7 @@ async function SetNodeNowLang(payload: any) {
   node.setPluginData('nodeInfo', JSON.stringify(newNodeInfo));
 
   const nodeContents = newNodeInfo.nodeContents;
-  let contents = {
+  const contents = {
     characters: node.characters || null,
     nowNodeLang: payload,
     nodeContents: nodeContents,
@@ -394,9 +394,9 @@ function getDefaultStyle(id: string) {
 
 function getStyle(id: string) {
   const node = <TextNode>figma.getNodeById(id);
-  let defaultStyle = getDefaultStyle(id);
-  let characterStyleOverrides = [];
-  let styleOverrideTable = {} as StyleOverridesType;
+  const defaultStyle = getDefaultStyle(id);
+  const characterStyleOverrides = [];
+  const styleOverrideTable = {} as StyleOverridesType;
   let tableIndexAll = 0;
   for (let i = 0; i < node.characters.length; i++) {
     const style = {} as StyleType;
@@ -411,7 +411,7 @@ function getStyle(id: string) {
     if (!defaultStyle.fills) style.fills = <Paint[]>node.getRangeFills(i, i + 1);
     if (!defaultStyle.fillStyleId) style.fillStyleId = <string>node.getRangeFillStyleId(i, i + 1);
     if (!defaultStyle.textStyleId) style.textStyleId = <string>node.getRangeTextStyleId(i, i + 1);
-    let tableIndex = Object.keys(styleOverrideTable).findIndex((key) => {
+    const tableIndex = Object.keys(styleOverrideTable).findIndex((key) => {
       return (
         JSON.stringify(Object.entries(styleOverrideTable[key])) ===
         JSON.stringify(Object.entries(style))
@@ -438,7 +438,7 @@ function exportFile() {
   const exportMap = {
     languages: langList,
     textNodeList,
-    i18n: textNodeList.reduce((prevObject: Object, textNodeId: string) => {
+    i18n: textNodeList.reduce((prevObject: any, textNodeId: string) => {
       const node = <TextNode>figma.getNodeById(textNodeId);
       const styles = getStyle(textNodeId);
       if (!node.getPluginData('nodeInfo')) {

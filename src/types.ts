@@ -41,11 +41,11 @@ export interface LangType {
 
 export interface LanguageInNodeType {
   Characters: string;
-  Style: object;
-  CharacterStyleOverrides: object;
+  Style: any;
+  CharacterStyleOverrides: any;
 }
 
 export interface NodeInfoType {
   nowLangId: number;
-  contents: object;
+  contents: any;
 }
