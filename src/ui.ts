@@ -125,6 +125,7 @@ function buttonListeners(): void {
       let langId = globalLang;
       for (let i = 0; i < target.parentElement!.children.length; i++)
         if (target.parentElement!.children[i] === target) langId = langList[i].id;
+      if (langId === globalLang) return;
       SetPreviewLangBtn(langId);
       postMessage({ type: UIActionTypes.SET_NODE_NOW_LANG, payload: langId });
     }
