@@ -1,0 +1,17 @@
+{
+  "0": {
+    "fontSize": 14,
+    "fills": [{ "type": "SOLID", "rgb": { "r": 255, "g": 0, "b": 0 } }],
+    "textDecoration": "UNDERLINE"
+  },
+  "1": {
+    "fontSize": 18,
+    "fills": [{ "type": "SOLID", "rgb": { "r": 0, "g": 0, "b": 0 } }],
+    "textDecoration": "NONE"
+  },
+  "2": {
+    "fontSize": 14,
+    "fills": [{ "type": "SOLID", "rgb": { "r": 255, "g": 0, "b": 255 } }],
+    "textDecoration": "UNDERLINE"
+  }
+}
