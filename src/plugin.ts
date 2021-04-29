@@ -40,6 +40,7 @@ figma.ui.onmessage = function ({ type, payload }: UIAction): void {
 };
 
 let thisNode = (null as unknown) as string;
+let styleStatus = 0;
 
 async function handleSelection(id: string) {
   const node = figma.getNodeById(id);
@@ -199,8 +200,6 @@ function DeleteLang(id: number) {
   const newLangList = langList.filter((item: any) => item.id !== id);
   figma.root.setPluginData('langList', JSON.stringify(newLangList));
 }
-
-let styleStatus = 0;
 
 async function ApplyGlobalLang(globalLang: number) {
   postMessage({
@@ -380,7 +379,16 @@ async function setStyle(
   if (style.letterSpacing) node.letterSpacing = style.letterSpacing;
   if (style.lineHeight) node.lineHeight = style.lineHeight;
   if (style.fills) node.fills = style.fills;
-  if (!styleOverrideTable || !characterStyleOverrides) return;
+  if (!styleOverrideTable || !characterStyleOverrides) {
+    styleStatus--;
+    if (styleStatus === 0) {
+      postMessage({
+        type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+        payload: { id: 'style', status: true },
+      });
+    }
+    return;
+  }
   console.log(styleOverrideTable);
   console.log(characterStyleOverrides);
   for (let i = 0; i < node.characters.length; i++) {
