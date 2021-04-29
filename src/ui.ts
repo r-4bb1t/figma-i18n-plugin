@@ -1,3 +1,4 @@
+import { check } from 'prettier';
 import { UIActionTypes, UIAction, WorkerActionTypes, WorkerAction } from './types';
 
 import './ui.css';
@@ -5,6 +6,9 @@ import './ui.css';
 let globalLang = 0;
 let nowNodeLang = 0;
 let langList = [{ id: 0, name: 'default' }];
+let isFontAvailable = true,
+  isTextAvailable = true,
+  isStyleAvailable = true;
 
 // Sends a message to the plugin worker
 function postMessage({ type, payload }: UIAction): void {
@@ -32,12 +36,40 @@ function listenToPluginMessages(): void {
         AddLang(payload);
         break;
       case WorkerActionTypes.SET_FONT_LOAD_STATUS:
-        if (payload) {
-          document.getElementById('loadedFonts')!.style.display = 'block';
-          document.getElementById('loadingFonts')!.style.display = 'none';
-        } else {
-          document.getElementById('loadedFonts')!.style.display = 'none';
-          document.getElementById('loadingFonts')!.style.display = 'block';
+        switch (payload.id) {
+          case 'font':
+            if (payload.status) {
+              document.getElementById('loadedFonts')!.style.display = 'block';
+              document.getElementById('loadingFonts')!.style.display = 'none';
+              isFontAvailable = true;
+            } else {
+              document.getElementById('loadedFonts')!.style.display = 'none';
+              document.getElementById('loadingFonts')!.style.display = 'block';
+              isFontAvailable = false;
+            }
+            break;
+          case 'text':
+            if (payload.status) {
+              document.getElementById('appliedTexts')!.style.display = 'block';
+              document.getElementById('applyingTexts')!.style.display = 'none';
+              isTextAvailable = true;
+            } else {
+              document.getElementById('appliedTexts')!.style.display = 'none';
+              document.getElementById('applyingTexts')!.style.display = 'block';
+              isTextAvailable = false;
+            }
+            break;
+          case 'style':
+            if (payload.status) {
+              document.getElementById('appliedStyle')!.style.display = 'block';
+              document.getElementById('applyingStyle')!.style.display = 'none';
+              isStyleAvailable = true;
+            } else {
+              document.getElementById('appliedStyle')!.style.display = 'none';
+              document.getElementById('applyingStyle')!.style.display = 'block';
+              isStyleAvailable = false;
+            }
+            break;
         }
         break;
       case WorkerActionTypes.EXPORT:
@@ -51,8 +83,20 @@ function listenToPluginMessages(): void {
   };
 }
 
+function checkIfAvailable() {
+  if (!isFontAvailable || !isTextAvailable || !isStyleAvailable) {
+    postMessage({
+      type: UIActionTypes.NOTIFY,
+      payload: 'It is still being applied. Please wait a moment.',
+    });
+    return false;
+  }
+  return true;
+}
+
 // Close the plugin if pressing Esc key when the input is not focused
 function closeWithEscapeKey(): void {
+  if (!checkIfAvailable()) return;
   const tagExceptions = ['input', 'textarea'];
 
   document.addEventListener('keydown', function (event: KeyboardEvent) {
@@ -74,6 +118,7 @@ function buttonListeners(): void {
   document.addEventListener(
     'change',
     async (event) => {
+      if (!checkIfAvailable()) return;
       const target = event.target as HTMLInputElement;
       if (target.id === 'import') {
         const files = target?.files;
@@ -92,6 +137,7 @@ function buttonListeners(): void {
     false,
   );
   document.addEventListener('click', function (event: MouseEvent) {
+    if (!checkIfAvailable()) return;
     const target = event.target as HTMLElement;
     switch (target.id) {
       case 'notificationBtn':
@@ -120,6 +166,7 @@ function buttonListeners(): void {
         break;
       case 'export':
         postMessage({ type: UIActionTypes.EXPORT });
+        break;
     }
     if (target.className === 'previewLangBtn') {
       let langId = globalLang;

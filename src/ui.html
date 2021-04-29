@@ -2,8 +2,16 @@
   <main class="container">
     <div class="flexRowBetween">
       <h1>Figma i18n Plugin</h1>
-      <div id="loadingFonts">Loading fonts</div>
-      <div id="loadedFonts">Fonts loaded ✔</div>
+      <div class="flexColumnLeft">
+        <div class="loadingText" id="loadingFonts">Loading fonts</div>
+        <div id="loadedFonts">Fonts loaded ✔</div>
+        <div class="loadingText" id="applyingTexts">Applying texts</div>
+        <div id="appliedTexts">Texts applied ✔</div>
+        <div class="loadingText" id="applyingStyle">
+          Applying style <small>(might take a few seconds)</small>
+        </div>
+        <div id="appliedStyle">Style applied ✔</div>
+      </div>
     </div>
     <h2>Global Language</h2>
     <div class="flexRow">

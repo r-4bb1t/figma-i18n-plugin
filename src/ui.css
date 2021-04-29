@@ -148,6 +148,13 @@ option {
   align-items: center;
 }
 
+.flexColumnLeft {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-end;
+}
+
 .btn {
   padding: 5px 10px;
   border-radius: 3px;
@@ -222,12 +229,15 @@ textarea {
   }
 }
 
-#loadingFonts::after {
+.loadingText::after {
   content: '.';
   animation: loadingDots 1s linear infinite;
 }
 
-#loadedFonts {
+.loadingText,
+#loadedFonts,
+#appliedTexts,
+#appliedStyle {
   display: none;
 }
 

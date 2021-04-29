@@ -112,6 +112,7 @@ async function handleSelection(id: string) {
   if (thisNode !== id) {
     if (nowNodeLang !== parseInt(figma.root.getPluginData('globalLang'))) {
       node.characters = nodeInfo.nodeContents[nowNodeLang].characters;
+      styleStatus = 1;
       setStyle(
         id,
         nodeInfo.nodeContents[nowNodeLang].style,
@@ -199,8 +200,23 @@ function DeleteLang(id: number) {
   figma.root.setPluginData('langList', JSON.stringify(newLangList));
 }
 
+let styleStatus = 0;
+
 async function ApplyGlobalLang(globalLang: number) {
-  const textNodeList = JSON.parse(figma.currentPage.getPluginData('textNodeList'));
+  postMessage({
+    type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+    payload: { id: 'font', status: false },
+  });
+  postMessage({
+    type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+    payload: { id: 'text', status: false },
+  });
+  postMessage({
+    type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+    payload: { id: 'style', status: false },
+  });
+  const textNodeList = getTextNode(figma.currentPage);
+  styleStatus = textNodeList.length;
   figma.root.setPluginData('globalLang', globalLang.toString());
   const langList = JSON.parse(figma.root.getPluginData('langList'));
   const rangeFontNames = [] as FontName[];
@@ -219,9 +235,11 @@ async function ApplyGlobalLang(globalLang: number) {
       }
     }
   });
-  postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
   await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
-  postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
+  postMessage({
+    type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+    payload: { id: 'font', status: true },
+  });
   textNodeList.map((textNodeId: string) => {
     const node = <TextNode>figma.getNodeById(textNodeId);
     if (node?.characters) {
@@ -253,6 +271,10 @@ async function ApplyGlobalLang(globalLang: number) {
       );
     }
   });
+  postMessage({
+    type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+    payload: { id: 'text', status: true },
+  });
 }
 
 async function SetNodeNowLang(payload: any) {
@@ -260,6 +282,18 @@ async function SetNodeNowLang(payload: any) {
   const node = <TextNode>figma.currentPage.selection[0];
   const newNodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
 
+  postMessage({
+    type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+    payload: { id: 'font', status: false },
+  });
+  postMessage({
+    type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+    payload: { id: 'text', status: false },
+  });
+  postMessage({
+    type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+    payload: { id: 'style', status: false },
+  });
   const rangeFontNames = [] as FontName[];
   for (let i = 0; i < node.characters.length; i++) {
     const fontName = node.getRangeFontName(i, i + 1) as FontName;
@@ -271,9 +305,11 @@ async function SetNodeNowLang(payload: any) {
       continue;
     rangeFontNames.push(node.getRangeFontName(i, i + 1) as FontName);
   }
-  postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: false });
   await Promise.all(rangeFontNames.map((name) => figma.loadFontAsync(name)));
-  postMessage({ type: WorkerActionTypes.SET_FONT_LOAD_STATUS, payload: true });
+  postMessage({
+    type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+    payload: { id: 'font', status: true },
+  });
 
   newNodeInfo.nowLangId = payload;
   if (!newNodeInfo.nodeContents[`${payload}`]) {
@@ -295,13 +331,18 @@ async function SetNodeNowLang(payload: any) {
     nowNodeLang: payload,
     nodeContents: nodeContents,
   };
-
+  styleStatus = 1;
   setStyle(
     node.id,
     newNodeInfo.nodeContents[payload].style,
     newNodeInfo.nodeContents[payload].characterStyleOverrides,
     newNodeInfo.nodeContents[payload].styleOverrideTable,
   );
+
+  postMessage({
+    type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+    payload: { id: 'text', status: true },
+  });
 
   postMessage({
     type: WorkerActionTypes.SELECTED_NODE,
@@ -340,7 +381,10 @@ async function setStyle(
   if (style.lineHeight) node.lineHeight = style.lineHeight;
   if (style.fills) node.fills = style.fills;
   if (!styleOverrideTable || !characterStyleOverrides) return;
+  console.log(styleOverrideTable);
+  console.log(characterStyleOverrides);
   for (let i = 0; i < node.characters.length; i++) {
+    if (!styleOverrideTable[characterStyleOverrides[i]]) continue;
     if (styleOverrideTable[characterStyleOverrides[i]].fontSize)
       node.setRangeFontSize(i, i + 1, styleOverrideTable[characterStyleOverrides[i]].fontSize);
     if (styleOverrideTable[characterStyleOverrides[i]].fontName) {
@@ -365,6 +409,13 @@ async function setStyle(
       node.setRangeLineHeight(i, i + 1, styleOverrideTable[characterStyleOverrides[i]].lineHeight);
     if (styleOverrideTable[characterStyleOverrides[i]].fills)
       node.setRangeFills(i, i + 1, styleOverrideTable[characterStyleOverrides[i]].fills);
+  }
+  styleStatus--;
+  if (styleStatus === 0) {
+    postMessage({
+      type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+      payload: { id: 'style', status: true },
+    });
   }
 }
 
