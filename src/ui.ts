@@ -232,9 +232,12 @@ function DeleteLang() {
       payload: langList[globalSelect.selectedIndex].id,
     });
     const target = document.getElementById('previewTab')!.children[globalSelect.selectedIndex];
+    const id = langList[globalSelect.selectedIndex].id;
     if (target) document.getElementById('previewTab')!.removeChild(target);
     globalSelect.remove(globalSelect.selectedIndex);
-    langList = langList.splice(globalSelect.selectedIndex, 1);
+    console.log(langList);
+    langList = langList.filter((lang: any) => lang.id !== id);
+    console.log(langList);
   }
 }
 
@@ -292,6 +295,7 @@ function ChangeNodeContents(payload: any) {
 
 function SetPreviewLangBtn(id: number) {
   const previewLangBtns = document.querySelectorAll('.previewLangBtn');
+  console.log(langList);
   for (let i = 0; i < previewLangBtns.length; i++) {
     if (langList[i].id === id) {
       (<HTMLDivElement>previewLangBtns[i]).style.background = 'var(--color-border)';

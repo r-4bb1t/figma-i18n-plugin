@@ -87,12 +87,16 @@ async function handleSelection(id: string) {
         nodeContents: defaultContents,
       }),
     );
+
     const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
     const nowNodeLang = parseInt(nodeInfo.nowLangId);
     const nodeContents = nodeInfo.nodeContents;
     const contents = {
       characters: node.characters || null,
-      nowNodeLang: nowNodeLang,
+      nowNodeLang:
+        langList.filter((lang: any) => lang.id === nowNodeLang).length > 0
+          ? nowNodeLang
+          : figma.root.getPluginData('globalLang'),
       nodeContents: nodeContents,
     };
     postMessage({
@@ -113,7 +117,7 @@ async function handleSelection(id: string) {
   if (thisNode !== id) {
     if (nowNodeLang !== parseInt(figma.root.getPluginData('globalLang'))) {
       node.characters = nodeInfo.nodeContents[nowNodeLang].characters;
-      styleStatus = 1;
+      styleStatus += 1;
       setStyle(
         id,
         nodeInfo.nodeContents[nowNodeLang].style,
@@ -197,11 +201,17 @@ function EditLang(payload: any) {
 
 function DeleteLang(id: number) {
   const langList = JSON.parse(figma.root.getPluginData('langList'));
+  const globalLang = parseInt(figma.root.getPluginData('globalLang'));
   const newLangList = langList.filter((item: any) => item.id !== id);
+  const newGlobalLang = id === globalLang ? newLangList[0] : globalLang;
+  if (id === globalLang) {
+    figma.root.setPluginData('globalLang', newGlobalLang.toString());
+  }
   figma.root.setPluginData('langList', JSON.stringify(newLangList));
+  ApplyGlobalLang(newGlobalLang, id);
 }
 
-async function ApplyGlobalLang(globalLang: number) {
+async function ApplyGlobalLang(globalLang: number, selectLang?: number) {
   postMessage({
     type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
     payload: { id: 'font', status: false },
@@ -214,8 +224,20 @@ async function ApplyGlobalLang(globalLang: number) {
     type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
     payload: { id: 'style', status: false },
   });
-  const textNodeList = getTextNode(figma.currentPage);
-  styleStatus = textNodeList.length;
+  const textNodeList = selectLang
+    ? getTextNode(figma.currentPage).filter(
+        (id: string) =>
+          JSON.parse((<TextNode>figma.getNodeById(id))?.getPluginData('nodeInfo')).nowLangId ===
+          selectLang,
+      )
+    : getTextNode(figma.currentPage);
+  styleStatus += textNodeList.length;
+  if (textNodeList.length === 0) {
+    postMessage({
+      type: WorkerActionTypes.SET_FONT_LOAD_STATUS,
+      payload: { id: 'style', status: true },
+    });
+  }
   figma.root.setPluginData('globalLang', globalLang.toString());
   const langList = JSON.parse(figma.root.getPluginData('langList'));
   const rangeFontNames = [] as FontName[];
@@ -260,8 +282,23 @@ async function ApplyGlobalLang(globalLang: number) {
         );
       }
       const nodeInfo = JSON.parse(node.getPluginData('nodeInfo'));
+      if (selectLang && nodeInfo.nowLangId !== selectLang) return;
       nodeInfo.nowLangId = globalLang;
       node.characters = nodeInfo.nodeContents[globalLang]?.characters || node.characters;
+      node.setPluginData(
+        'nodeInfo',
+        JSON.stringify({
+          nowLangId: globalLang,
+          nodeContents: Object.keys(nodeInfo.nodeContents)
+            .filter(
+              (id: string) => langList.filter((lang: any) => lang.id === parseInt(id)).length > 0,
+            )
+            .reduce((obj: any, key: string) => {
+              obj[key] = nodeInfo.nodeContents[key];
+              return obj;
+            }, {}),
+        }),
+      );
       setStyle(
         textNodeId,
         nodeInfo.nodeContents[globalLang]?.style || getDefaultStyle(textNodeId),
@@ -319,7 +356,6 @@ async function SetNodeNowLang(payload: any) {
       characterStyleOverrides: styles.characterStyleOverrides,
       styleOverrideTable: styles.styleOverrideTable,
     };
-    console.log(newNodeInfo.nodeContents);
   }
   node.characters = newNodeInfo.nodeContents[`${payload}`].characters;
   node.setPluginData('nodeInfo', JSON.stringify(newNodeInfo));
@@ -330,7 +366,7 @@ async function SetNodeNowLang(payload: any) {
     nowNodeLang: payload,
     nodeContents: nodeContents,
   };
-  styleStatus = 1;
+  styleStatus += 1;
   setStyle(
     node.id,
     newNodeInfo.nodeContents[payload].style,
@@ -389,8 +425,6 @@ async function setStyle(
     }
     return;
   }
-  console.log(styleOverrideTable);
-  console.log(characterStyleOverrides);
   for (let i = 0; i < node.characters.length; i++) {
     if (!styleOverrideTable[characterStyleOverrides[i]]) continue;
     if (styleOverrideTable[characterStyleOverrides[i]].fontSize)
