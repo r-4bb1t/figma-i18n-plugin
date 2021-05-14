@@ -128,6 +128,9 @@ async function handleSelection(id: string) {
     thisNode = id;
   }
 
+  nodeInfo.nodeContents = { ...nodeInfo.nodeContents, [nowNodeLang]: {} };
+  console.log(nodeInfo.nodeContents);
+
   nodeInfo.nodeContents[nowNodeLang].characters = node.characters;
   nodeInfo.nodeContents[nowNodeLang].style = styles.style;
   nodeInfo.nodeContents[nowNodeLang].characterStyleOverrides = styles.characterStyleOverrides;
