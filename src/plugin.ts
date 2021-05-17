@@ -129,7 +129,6 @@ async function handleSelection(id: string) {
   }
 
   nodeInfo.nodeContents = { ...nodeInfo.nodeContents, [nowNodeLang]: {} };
-  console.log(nodeInfo.nodeContents);
 
   nodeInfo.nodeContents[nowNodeLang].characters = node.characters;
   nodeInfo.nodeContents[nowNodeLang].style = styles.style;
@@ -144,8 +143,10 @@ async function handleSelection(id: string) {
 }
 
 figma.on('selectionchange', async () => {
-  const id = figma.currentPage?.selection[0]?.id;
-  id && handleSelection(id);
+  if (styleStatus > 0) return;
+  figma.currentPage?.selection.map((select) => {
+    if (select.id) handleSelection(select.id);
+  });
 });
 
 function getTextNode(root: BaseNode) {
@@ -351,8 +352,8 @@ async function SetNodeNowLang(payload: any) {
   });
 
   newNodeInfo.nowLangId = payload;
+  const styles = getStyle(node.id);
   if (!newNodeInfo.nodeContents[`${payload}`]) {
-    const styles = getStyle(node.id);
     newNodeInfo.nodeContents[`${payload}`] = {
       characters: node.characters,
       style: styles.style,
@@ -412,7 +413,10 @@ async function setStyle(
 ) {
   const node = <TextNode>figma.getNodeById(id);
   if (style.fontSize) node.fontSize = style.fontSize;
-  if (style.fontName) node.fontName = style.fontName;
+  if (style.fontName) {
+    await figma.loadFontAsync(style.fontName);
+    node.fontName = style.fontName;
+  }
   if (style.textCase) node.textCase = style.textCase;
   if (style.textDecoration) node.textDecoration = style.textDecoration;
   if (style.letterSpacing) node.letterSpacing = style.letterSpacing;
