@@ -532,8 +532,9 @@ function getStyle(id: string) {
 }
 
 function exportFile() {
-  const textNodeList = JSON.parse(figma.currentPage.getPluginData('textNodeList'));
-  const langList = JSON.parse(figma.root.getPluginData('langList'));
+  console.log("exportFile", figma.currentPage.getPluginData('textNodeList'));
+  const textNodeList = JSON.parse(figma.currentPage.getPluginData('textNodeList') || "[]");
+  const langList = JSON.parse(figma.root.getPluginData('langList') || "[]");
   const globalLang = figma.root.getPluginData('globalLang');
   const exportMap = {
     languages: langList,
